@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Suite {
+pub enum Suit {
     Hearts,
     Bells,
     Acorns,
@@ -20,17 +20,17 @@ pub enum Rank {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Card {
-    pub suite: Suite,
+    pub suit: Suit,
     pub rank: Rank
 }
 
 impl Card {
-    pub fn new(suite: Suite, rank: Rank) -> Card {
-        Card {suite, rank}
+    pub fn new(suit: Suit, rank: Rank) -> Card {
+        Card {suit, rank}
     }
     
-    pub fn suite(&self) -> Suite {
-        self.suite
+    pub fn suit(&self) -> Suit {
+        self.suit
     }
 
     pub fn rank(&self) -> Rank {
