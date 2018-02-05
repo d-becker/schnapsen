@@ -210,6 +210,149 @@ fn test_close_not_enough_cards_left() {
 }
 
 #[test]
+fn test_exchange_trump_not_having_trump_unter() {
+    let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+                    Card{suit: Suit::Hearts, rank: Rank::King},
+                    Card{suit: Suit::Hearts, rank: Rank::Ten},
+                    Card{suit: Suit::Hearts, rank: Rank::Ace}];
+
+    let player1_hand = vec![Card{suit: Suit::Bells, rank: Rank::Unter},
+                            Card{suit: Suit::Bells, rank: Rank::Ober},
+                            Card{suit: Suit::Bells, rank: Rank::King},
+                            Card{suit: Suit::Bells, rank: Rank::Ten},
+                            Card{suit: Suit::Bells, rank: Rank::Ace}];
+        
+    let player2_hand = vec![Card{suit: Suit::Acorns, rank: Rank::Unter},
+                            Card{suit: Suit::Acorns, rank: Rank::Ober},
+                            Card{suit: Suit::Acorns, rank: Rank::King},
+                            Card{suit: Suit::Acorns, rank: Rank::Ten},
+                            Card{suit: Suit::Acorns, rank: Rank::Ace}];
+
+    let trump_card = deck[0];
+    let trump = trump_card.suit();
+
+    let player1 = Player {hand: player1_hand, ..Default::default()};
+    let player2 = Player {hand: player2_hand, ..Default::default()};
+
+    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+
+    assert!(!game.can_exchange_trump());
+
+    let result = game.exchange_trump();
+    assert!(!result);
+
+    assert_eq!(trump_card, game.trump_card().unwrap());
+}
+
+#[test]
+fn test_exchange_trump_not_enough_cards_in_deck() {
+    let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+                    Card{suit: Suit::Hearts, rank: Rank::King}];
+
+    let player1_hand = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
+                            Card{suit: Suit::Bells, rank: Rank::Ober},
+                            Card{suit: Suit::Bells, rank: Rank::King},
+                            Card{suit: Suit::Bells, rank: Rank::Ten},
+                            Card{suit: Suit::Bells, rank: Rank::Ace}];
+        
+    let player2_hand = vec![Card{suit: Suit::Acorns, rank: Rank::Unter},
+                            Card{suit: Suit::Acorns, rank: Rank::Ober},
+                            Card{suit: Suit::Acorns, rank: Rank::King},
+                            Card{suit: Suit::Acorns, rank: Rank::Ten},
+                            Card{suit: Suit::Acorns, rank: Rank::Ace}];
+
+    let trump_card = deck[0];
+    let trump = trump_card.suit();
+
+    let player1 = Player {hand: player1_hand, ..Default::default()};
+    let player2 = Player {hand: player2_hand, ..Default::default()};
+
+    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+
+    assert!(!game.can_exchange_trump());
+
+    let result = game.exchange_trump();
+    assert!(!result);
+
+    assert_eq!(trump_card, game.trump_card().unwrap());
+}
+
+#[test]
+fn test_exchange_trump_closed() {
+     let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+                    Card{suit: Suit::Hearts, rank: Rank::King},
+                    Card{suit: Suit::Hearts, rank: Rank::Ten},
+                    Card{suit: Suit::Hearts, rank: Rank::Ace}];
+
+    let player1_hand = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
+                            Card{suit: Suit::Bells, rank: Rank::Ober},
+                            Card{suit: Suit::Bells, rank: Rank::King},
+                            Card{suit: Suit::Bells, rank: Rank::Ten},
+                            Card{suit: Suit::Bells, rank: Rank::Ace}];
+        
+    let player2_hand = vec![Card{suit: Suit::Acorns, rank: Rank::Unter},
+                            Card{suit: Suit::Acorns, rank: Rank::Ober},
+                            Card{suit: Suit::Acorns, rank: Rank::King},
+                            Card{suit: Suit::Acorns, rank: Rank::Ten},
+                            Card{suit: Suit::Acorns, rank: Rank::Ace}];
+
+    let trump_card = deck[0];
+    let trump = trump_card.suit();
+
+    let player1 = Player {hand: player1_hand, ..Default::default()};
+    let player2 = Player {hand: player2_hand, ..Default::default()};
+
+    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+
+    game.close();
+    assert!(game.is_closed());
+    
+    assert!(!game.can_exchange_trump());
+
+    let result = game.exchange_trump();
+    assert!(!result);
+
+    assert_eq!(None, game.trump_card());
+    assert!(game.player1.hand.contains(&Card::new(trump, Rank::Unter)));
+}
+
+#[test]
+fn exchange_trump_ok() {
+     let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+                    Card{suit: Suit::Hearts, rank: Rank::King},
+                    Card{suit: Suit::Hearts, rank: Rank::Ten},
+                    Card{suit: Suit::Hearts, rank: Rank::Ace}];
+
+    let player1_hand = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
+                            Card{suit: Suit::Bells, rank: Rank::Ober},
+                            Card{suit: Suit::Bells, rank: Rank::King},
+                            Card{suit: Suit::Bells, rank: Rank::Ten},
+                            Card{suit: Suit::Bells, rank: Rank::Ace}];
+        
+    let player2_hand = vec![Card{suit: Suit::Acorns, rank: Rank::Unter},
+                            Card{suit: Suit::Acorns, rank: Rank::Ober},
+                            Card{suit: Suit::Acorns, rank: Rank::King},
+                            Card{suit: Suit::Acorns, rank: Rank::Ten},
+                            Card{suit: Suit::Acorns, rank: Rank::Ace}];
+
+    let trump_card = deck[0];
+    let trump = trump_card.suit();
+
+    let player1 = Player {hand: player1_hand, ..Default::default()};
+    let player2 = Player {hand: player2_hand, ..Default::default()};
+
+    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+
+    assert!(game.can_exchange_trump());
+
+    let result = game.exchange_trump();
+    assert!(result);
+
+    assert_eq!(Card::new(trump, Rank::Unter), game.trump_card().unwrap());
+    assert!(game.player1.hand.contains(&trump_card));
+}
+
+#[test]
 fn test_call_twenty_no_such_cards() {
     let deck = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
@@ -411,6 +554,60 @@ fn test_call_forty_ok() {
     assert!(result);
 
     assert_eq!(Some(trump), game.player1.forty);
+}
+
+#[test]
+fn declare_win_already_game_over() {
+    let player1_wins = vec![Card::new(Suit::Leaves, Rank::Ace),
+                            Card::new(Suit::Leaves, Rank::Ten),
+                            Card::new(Suit::Bells, Rank::Ace),
+                            Card::new(Suit::Bells, Rank::Ten),
+                            Card::new(Suit::Hearts, Rank::Ace),
+                            Card::new(Suit::Hearts, Rank::Ten),
+                            Card::new(Suit::Leaves, Rank::King),
+                            Card::new(Suit::Leaves, Rank::Ober)];
+    let player1 = Player {wins: player1_wins, ..Default::default()};
+    let mut game = Game {player1, ..Default::default()};
+
+    game.declare_win();
+    assert!(game.is_game_over());
+    
+    assert!(!game.can_declare_win());
+
+    let result = game.declare_win();
+    assert!(!result);
+}
+
+#[test]
+fn declare_win_not_enough() {
+    let player1_wins = vec![Card::new(Suit::Leaves, Rank::Ace),
+                            Card::new(Suit::Leaves, Rank::Ten)];
+    let player1 = Player {wins: player1_wins, ..Default::default()};
+    let mut game = Game {player1, ..Default::default()};
+
+    assert!(!game.can_declare_win());
+
+    let result = game.declare_win();
+    assert!(!result);
+}
+
+#[test]
+fn declare_win_ok() {
+    let player1_wins = vec![Card::new(Suit::Leaves, Rank::Ace),
+                            Card::new(Suit::Leaves, Rank::Ten),
+                            Card::new(Suit::Bells, Rank::Ace),
+                            Card::new(Suit::Bells, Rank::Ten),
+                            Card::new(Suit::Hearts, Rank::Ace),
+                            Card::new(Suit::Hearts, Rank::Ten),
+                            Card::new(Suit::Leaves, Rank::King),
+                            Card::new(Suit::Leaves, Rank::Ober)];
+    let player1 = Player {wins: player1_wins, ..Default::default()};
+    let mut game = Game {player1, ..Default::default()};
+
+    assert!(game.can_declare_win());
+
+    let result = game.declare_win();
+    assert!(result);
 }
 
 #[test]

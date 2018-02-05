@@ -83,6 +83,7 @@ pub struct Game {
     deck: Vec<Card>,
     trump: Suit,
     closed: bool,
+    game_over: bool,
 
     player1: Player,
     player2: Player,
@@ -123,6 +124,7 @@ impl Game {
         Game {deck,
               trump,
               closed: false,
+              game_over: false,
               player1: Player {name: "Player1".to_string(),
                                hand: hand1, ..Default::default()},
               player2: Player {name: "Player2".to_string(),
@@ -152,7 +154,7 @@ impl Game {
     }
 
     pub fn can_close(&self) -> bool {
-        !self.is_closed() && self.deck.len() > 2
+        !self.is_game_over() && !self.is_closed() && self.deck.len() > 2
     }
     
     pub fn close(&mut self) -> bool {
@@ -165,7 +167,48 @@ impl Game {
         can_close
     }
 
+    pub fn can_exchange_trump(&self) -> bool {
+        if self.is_game_over() || self.is_closed() || self.deck.len() <= 2 {
+            return false;
+        }
+
+        let current_player =
+            if self.player1_next {
+                &self.player1
+            } else {
+                &self.player2
+            };
+        
+        current_player.hand.contains(&Card::new(self.trump, Rank::Unter))
+    }
+
+    pub fn exchange_trump(&mut self) -> bool {
+        let can_exchange_trump = self.can_exchange_trump();
+        if can_exchange_trump {
+            let trump = self.trump;
+            
+            let current_player =
+                if self.player1_next {
+                    &mut self.player1
+                } else {
+                    &mut self.player2
+                };
+            
+            let index = current_player.hand.iter()
+                .position(|&card| card == Card::new(trump, Rank::Unter))
+                .unwrap();
+            current_player.hand[index] = self.deck[0];
+            self.deck[0] = Card::new(trump, Rank::Unter);
+        }
+
+        can_exchange_trump
+    }
+
     pub fn can_call_twenty(&self, suit: Suit) -> bool {
+        if self.is_game_over() {
+            return false;
+        }
+        
         let current_player = if self.player1_next {
             &self.player1
         } else {
@@ -195,6 +238,10 @@ impl Game {
     }
 
     pub fn can_call_forty(&self) -> bool {
+        if self.is_game_over() {
+            return false;
+        }
+        
         let current_player = if self.player1_next {
             &self.player1
         } else {
@@ -220,6 +267,33 @@ impl Game {
 
         can_call_forty
     }
+
+    pub fn is_game_over(&self) -> bool {
+        self.game_over
+    }
+
+    pub fn can_declare_win(&self) -> bool {
+        if self.is_game_over() {
+            return false;
+        }
+        
+        let current_player = if self.player1_next {
+            &self.player1
+        } else {
+            &self.player2
+        };
+
+        current_player.score() >= 66
+    }
+    
+    pub fn declare_win(&mut self) -> bool {
+        let can_declare_win = self.can_declare_win();
+        if can_declare_win {
+            self.game_over = true;
+        }
+
+        can_declare_win
+    }
     
     pub fn next_player_name(&self) -> &str {
         if self.player1_next {
@@ -232,6 +306,10 @@ impl Game {
     pub fn next_turn_possible(&self,
                               player1_card: Card,
                               player2_card: Card) -> bool {
+        if self.is_game_over() {
+            return false;
+        }
+        
         if !self.player1.hand.contains(&player1_card)
             || !self.player2.hand.contains(&player2_card) {
             return false;
