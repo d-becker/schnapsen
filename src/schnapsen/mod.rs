@@ -369,13 +369,15 @@ impl Game {
             .position(|&card| card == losing_card).unwrap();
         losing_player.hand.remove(losing_index);
 
-        if let Some(card) = self.stock.pop() {
-            winning_player.hand.push(card);
-        };
+        if !self.closed {
+            if let Some(card) = self.stock.pop() {
+                winning_player.hand.push(card);
+            };
 
-        if let Some(card) = self.stock.pop() {
-            losing_player.hand.push(card);
-        };
+            if let Some(card) = self.stock.pop() {
+                losing_player.hand.push(card);
+            };
+        }
 
         self.player1_next = player1_wins;        
         true

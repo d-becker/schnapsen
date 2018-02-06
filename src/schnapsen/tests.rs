@@ -746,7 +746,16 @@ fn test_next_turn_closed_must_use_trump() {
 }
 
 #[test]
-fn test_next_turn_ok() {
+fn test_next_turn_ok_not_closed() {
+    test_next_turn_ok_template(false);
+}
+
+#[test]
+fn test_next_turn_ok_closed() {
+    test_next_turn_ok_template(true);
+}
+
+fn test_next_turn_ok_template(should_be_closed: bool) {
     let stock = vec![
         Card{suit: Suit::Hearts, rank: Rank::Unter},
         Card{suit: Suit::Hearts, rank: Rank::Ober},
@@ -761,6 +770,8 @@ fn test_next_turn_ok() {
         Card{suit: Suit::Acorns, rank: Rank::Ace},
     ];
 
+    let original_stock_size = stock.len();
+    
     let trump = stock[0].suit();
 
     let player1_hand = vec![
@@ -788,6 +799,11 @@ fn test_next_turn_ok() {
         stock, trump, player1, player2, ..Default::default()
     };
 
+    if should_be_closed {
+        game.close();
+        assert!(game.is_closed());
+    }
+
     let card1 = game.player1.hand[4];
     let card2 = game.player2.hand[4];
     let result = game.next_turn(card1, card2);
@@ -796,10 +812,12 @@ fn test_next_turn_ok() {
     assert!(!game.player1.hand.contains(&card1));
     assert!(!game.player2.hand.contains(&card2));
 
-    assert_eq!(5, game.player1.hand.len());
-    assert_eq!(5, game.player2.hand.len());
+    let cards_less = if should_be_closed {1} else {0};
+    assert_eq!(5 - cards_less, game.player1.hand.len());
+    assert_eq!(5 - cards_less, game.player2.hand.len());
 
-    assert_eq!(8, game.stock.len());
+    let dealed_cards = if should_be_closed {0} else {2};
+    assert_eq!(original_stock_size - dealed_cards, game.stock.len());
     
     assert!(game.player2.wins.contains(&card1));
     assert!(game.player2.wins.contains(&card2));
