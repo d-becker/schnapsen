@@ -133,18 +133,18 @@ fn test_player_score() {
 fn test_new_random_game() {
     let game = Game::new_random();
 
-    assert_eq!(10, game.deck.len());
+    assert_eq!(10, game.stock.len());
     assert_eq!(5, game.player1.hand.len());
     assert_eq!(5, game.player2.hand.len());
 
-    assert_eq!(game.deck[0].suit(), game.trump);
+    assert_eq!(game.stock[0].suit(), game.trump);
 }
 
 #[test]
 fn test_trump_card_available() {
     let game = Game::default();
 
-    assert_eq!(Some(game.deck[0]), game.trump_card());
+    assert_eq!(Some(game.stock[0]), game.trump_card());
 }
 
 #[test]
@@ -157,7 +157,7 @@ fn test_trump_card_closed() {
 #[test]
 fn test_trump_card_no_card_left() {
     let game = Game {
-        deck: Vec::new(), ..Default::default()
+        stock: Vec::new(), ..Default::default()
     };
 
     assert_eq!(None, game.trump_card());
@@ -194,7 +194,7 @@ fn test_close_already_closed() {
 #[test]
 fn test_close_not_enough_cards_left() {
     let mut game = Game {
-        deck: vec![Card::new(Suit::Leaves, Rank::Ace),
+        stock: vec![Card::new(Suit::Leaves, Rank::Ace),
                    Card::new(Suit::Leaves, Rank::Ten)],
         trump: Suit::Leaves,
         ..Default::default()
@@ -211,7 +211,7 @@ fn test_close_not_enough_cards_left() {
 
 #[test]
 fn test_exchange_trump_not_having_trump_unter() {
-    let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+    let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
                     Card{suit: Suit::Hearts, rank: Rank::King},
                     Card{suit: Suit::Hearts, rank: Rank::Ten},
                     Card{suit: Suit::Hearts, rank: Rank::Ace}];
@@ -228,13 +228,13 @@ fn test_exchange_trump_not_having_trump_unter() {
                             Card{suit: Suit::Acorns, rank: Rank::Ten},
                             Card{suit: Suit::Acorns, rank: Rank::Ace}];
 
-    let trump_card = deck[0];
+    let trump_card = stock[0];
     let trump = trump_card.suit();
 
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
     assert!(!game.can_exchange_trump());
 
@@ -245,8 +245,8 @@ fn test_exchange_trump_not_having_trump_unter() {
 }
 
 #[test]
-fn test_exchange_trump_not_enough_cards_in_deck() {
-    let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+fn test_exchange_trump_not_enough_cards_in_stock() {
+    let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
                     Card{suit: Suit::Hearts, rank: Rank::King}];
 
     let player1_hand = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
@@ -261,13 +261,13 @@ fn test_exchange_trump_not_enough_cards_in_deck() {
                             Card{suit: Suit::Acorns, rank: Rank::Ten},
                             Card{suit: Suit::Acorns, rank: Rank::Ace}];
 
-    let trump_card = deck[0];
+    let trump_card = stock[0];
     let trump = trump_card.suit();
 
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
     assert!(!game.can_exchange_trump());
 
@@ -279,7 +279,7 @@ fn test_exchange_trump_not_enough_cards_in_deck() {
 
 #[test]
 fn test_exchange_trump_closed() {
-     let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+     let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
                     Card{suit: Suit::Hearts, rank: Rank::King},
                     Card{suit: Suit::Hearts, rank: Rank::Ten},
                     Card{suit: Suit::Hearts, rank: Rank::Ace}];
@@ -296,13 +296,13 @@ fn test_exchange_trump_closed() {
                             Card{suit: Suit::Acorns, rank: Rank::Ten},
                             Card{suit: Suit::Acorns, rank: Rank::Ace}];
 
-    let trump_card = deck[0];
+    let trump_card = stock[0];
     let trump = trump_card.suit();
 
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
     game.close();
     assert!(game.is_closed());
@@ -318,7 +318,7 @@ fn test_exchange_trump_closed() {
 
 #[test]
 fn exchange_trump_ok() {
-     let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+     let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
                     Card{suit: Suit::Hearts, rank: Rank::King},
                     Card{suit: Suit::Hearts, rank: Rank::Ten},
                     Card{suit: Suit::Hearts, rank: Rank::Ace}];
@@ -335,13 +335,13 @@ fn exchange_trump_ok() {
                             Card{suit: Suit::Acorns, rank: Rank::Ten},
                             Card{suit: Suit::Acorns, rank: Rank::Ace}];
 
-    let trump_card = deck[0];
+    let trump_card = stock[0];
     let trump = trump_card.suit();
 
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
     assert!(game.can_exchange_trump());
 
@@ -354,7 +354,7 @@ fn exchange_trump_ok() {
 
 #[test]
 fn test_call_twenty_no_such_cards() {
-    let deck = Vec::new();
+    let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
                      Card::new(Suit::Bells, Rank::Ace),
@@ -370,7 +370,7 @@ fn test_call_twenty_no_such_cards() {
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
     
-    let mut game = Game {deck, trump: Suit::Hearts,
+    let mut game = Game {stock, trump: Suit::Hearts,
                          player1, player2, ..Default::default()};
 
     assert!(!game.can_call_twenty(Suit::Bells));
@@ -381,7 +381,7 @@ fn test_call_twenty_no_such_cards() {
 
 #[test]
 fn test_call_twenty_already_called_the_same() {
-    let deck = Vec::new();
+    let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
                      Card::new(Suit::Bells, Rank::Ober),
@@ -397,7 +397,7 @@ fn test_call_twenty_already_called_the_same() {
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
     
-    let mut game = Game {deck, trump: Suit::Hearts,
+    let mut game = Game {stock, trump: Suit::Hearts,
                          player1, player2, ..Default::default()};
 
     let twenty_suit = Suit::Bells;
@@ -413,7 +413,7 @@ fn test_call_twenty_already_called_the_same() {
 
 #[test]
 fn test_call_twenty_suit_is_trump() {
-    let deck = Vec::new();
+    let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
                      Card::new(Suit::Bells, Rank::Ober),
@@ -431,7 +431,8 @@ fn test_call_twenty_suit_is_trump() {
 
     let twenty_suit = Suit::Bells;
     
-    let mut game = Game {deck, trump: twenty_suit, player1, player2, ..Default::default()};
+    let mut game = Game {stock, trump: twenty_suit, player1,
+                         player2, ..Default::default()};
 
     assert!(!game.can_call_twenty(twenty_suit));
 
@@ -443,7 +444,7 @@ fn test_call_twenty_suit_is_trump() {
 
 #[test]
 fn test_call_twenty_ok() {
-    let deck = Vec::new();
+    let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
                      Card::new(Suit::Bells, Rank::Ober),
@@ -459,7 +460,7 @@ fn test_call_twenty_ok() {
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
     
-    let mut game = Game {deck, player1, player2, ..Default::default()};
+    let mut game = Game {stock, player1, player2, ..Default::default()};
 
     let twenty_suit = Suit::Bells;
     assert!(game.can_call_twenty(twenty_suit));
@@ -472,7 +473,7 @@ fn test_call_twenty_ok() {
 
 #[test]
 fn test_call_forty_no_such_cards() {
-    let deck = Vec::new();
+    let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
                      Card::new(Suit::Bells, Rank::Ace),
@@ -489,7 +490,7 @@ fn test_call_forty_no_such_cards() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
-    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
     assert!(!game.can_call_forty());
 
@@ -499,7 +500,7 @@ fn test_call_forty_no_such_cards() {
 
 #[test]
 fn test_call_forty_already_called_the_same() {
-    let deck = Vec::new();
+    let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
                      Card::new(Suit::Bells, Rank::Ober),
@@ -516,7 +517,7 @@ fn test_call_forty_already_called_the_same() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
-    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
     
     game.call_forty();
     assert_eq!(Some(trump), game.player1.forty);
@@ -529,7 +530,7 @@ fn test_call_forty_already_called_the_same() {
 
 #[test]
 fn test_call_forty_ok() {
-    let deck = Vec::new();
+    let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
                      Card::new(Suit::Bells, Rank::Ober),
@@ -546,7 +547,7 @@ fn test_call_forty_ok() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
-    let mut game = Game {deck, trump, player1, player2, ..Default::default()};
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
     assert!(game.can_call_forty());
 
@@ -634,14 +635,14 @@ fn test_next_turn_invalid_player2_card() {
 
 #[test]
 fn test_next_turn_illegal_suit() {
-    let deck = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
+    let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
                     Card{suit: Suit::Hearts, rank: Rank::Ober},
                     Card{suit: Suit::Hearts, rank: Rank::King},
                     Card{suit: Suit::Hearts, rank: Rank::Ten},
                     Card{suit: Suit::Hearts, rank: Rank::Ace},
                     Card{suit: Suit::Acorns, rank: Rank::Unter}];
 
-    let trump = deck[0].suit();
+    let trump = stock[0].suit();
 
     let player1_hand = vec![Card{suit: Suit::Acorns, rank: Rank::Ten},
                             Card{suit: Suit::Acorns, rank: Rank::Ace},
@@ -664,7 +665,7 @@ fn test_next_turn_illegal_suit() {
                           ..Default::default()};
 
     let mut game = Game {
-        deck, trump, player1, player2, ..Default::default()
+        stock, trump, player1, player2, ..Default::default()
     };
 
     let closing_successful = game.close();
@@ -678,7 +679,7 @@ fn test_next_turn_illegal_suit() {
 
 #[test]
 fn test_next_turn_closed_must_be_higher() {
-    let deck = Vec::new();
+    let stock = Vec::new();
 
     let trump = Suit::Hearts;
 
@@ -703,7 +704,7 @@ fn test_next_turn_closed_must_be_higher() {
                           ..Default::default()};
 
     let mut game = Game {
-        deck, trump, player1, player2, ..Default::default()
+        stock, trump, player1, player2, ..Default::default()
     };
 
     let result = game.next_turn(player1_card, player2_card);
@@ -712,7 +713,7 @@ fn test_next_turn_closed_must_be_higher() {
 
 #[test]
 fn test_next_turn_closed_must_use_trump() {
-    let deck = Vec::new();
+    let stock = Vec::new();
 
     let trump = Suit::Hearts;
 
@@ -737,7 +738,7 @@ fn test_next_turn_closed_must_use_trump() {
                           ..Default::default()};
 
     let mut game = Game {
-        deck, trump, player1, player2, ..Default::default()
+        stock, trump, player1, player2, ..Default::default()
     };
 
     let result = game.next_turn(player1_card, player2_card);
@@ -746,7 +747,7 @@ fn test_next_turn_closed_must_use_trump() {
 
 #[test]
 fn test_next_turn_ok() {
-    let deck = vec![
+    let stock = vec![
         Card{suit: Suit::Hearts, rank: Rank::Unter},
         Card{suit: Suit::Hearts, rank: Rank::Ober},
         Card{suit: Suit::Hearts, rank: Rank::King},
@@ -760,7 +761,7 @@ fn test_next_turn_ok() {
         Card{suit: Suit::Acorns, rank: Rank::Ace},
     ];
 
-    let trump = deck[0].suit();
+    let trump = stock[0].suit();
 
     let player1_hand = vec![
         Card{suit: Suit::Bells, rank: Rank::Unter},
@@ -784,7 +785,7 @@ fn test_next_turn_ok() {
                           ..Default::default()};
     
     let mut game = Game {
-        deck, trump, player1, player2, ..Default::default()
+        stock, trump, player1, player2, ..Default::default()
     };
 
     let card1 = game.player1.hand[4];
@@ -798,7 +799,7 @@ fn test_next_turn_ok() {
     assert_eq!(5, game.player1.hand.len());
     assert_eq!(5, game.player2.hand.len());
 
-    assert_eq!(8, game.deck.len());
+    assert_eq!(8, game.stock.len());
     
     assert!(game.player2.wins.contains(&card1));
     assert!(game.player2.wins.contains(&card2));

@@ -80,7 +80,7 @@ pub struct Player {
 
 #[derive(Debug)]
 pub struct Game {
-    deck: Vec<Card>,
+    stock: Vec<Card>,
     trump: Suit,
     closed: bool,
     game_over: bool,
@@ -118,10 +118,11 @@ impl Game {
         
         let deck_length = deck.len();
         let hand2 = deck.split_off(deck_length - 5);
-        
-        let trump = deck[0].suit();
 
-        Game {deck,
+        let stock = deck;
+        let trump = stock[0].suit();
+
+        Game {stock,
               trump,
               closed: false,
               game_over: false,
@@ -141,11 +142,19 @@ impl Game {
         Game::new_(deck)
     }
 
+    pub fn get_player1(&self) -> &Player {
+        &self.player1
+    }
+
+    pub fn get_player2(&self) -> &Player {
+        &self.player2
+    }
+
     pub fn trump_card(&self) -> Option<Card> {
         if self.closed {
             None
         } else {
-            self.deck.first().map(|&card| card)
+            self.stock.first().map(|&card| card)
         }
     }
 
@@ -154,7 +163,7 @@ impl Game {
     }
 
     pub fn can_close(&self) -> bool {
-        !self.is_game_over() && !self.is_closed() && self.deck.len() > 2
+        !self.is_game_over() && !self.is_closed() && self.stock.len() > 2
     }
     
     pub fn close(&mut self) -> bool {
@@ -168,7 +177,7 @@ impl Game {
     }
 
     pub fn can_exchange_trump(&self) -> bool {
-        if self.is_game_over() || self.is_closed() || self.deck.len() <= 2 {
+        if self.is_game_over() || self.is_closed() || self.stock.len() <= 2 {
             return false;
         }
 
@@ -197,8 +206,8 @@ impl Game {
             let index = current_player.hand.iter()
                 .position(|&card| card == Card::new(trump, Rank::Unter))
                 .unwrap();
-            current_player.hand[index] = self.deck[0];
-            self.deck[0] = Card::new(trump, Rank::Unter);
+            current_player.hand[index] = self.stock[0];
+            self.stock[0] = Card::new(trump, Rank::Unter);
         }
 
         can_exchange_trump
@@ -315,7 +324,7 @@ impl Game {
             return false;
         }
 
-        let is_endgame = self.closed || self.deck.is_empty();
+        let is_endgame = self.closed || self.stock.is_empty();
         if !is_endgame {
             return true;
         }
@@ -360,11 +369,11 @@ impl Game {
             .position(|&card| card == losing_card).unwrap();
         losing_player.hand.remove(losing_index);
 
-        if let Some(card) = self.deck.pop() {
+        if let Some(card) = self.stock.pop() {
             winning_player.hand.push(card);
         };
 
-        if let Some(card) = self.deck.pop() {
+        if let Some(card) = self.stock.pop() {
             losing_player.hand.push(card);
         };
 
