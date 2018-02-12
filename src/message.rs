@@ -1,4 +1,5 @@
 use cards::{Card, Suit};
+use schnapsen;
 
 pub enum RequestData {
     Close,
@@ -10,11 +11,11 @@ pub enum RequestData {
 }
 
 pub struct Request {
-    id: u32,
-    data: RequestData
+    pub id: u32,
+    pub data: RequestData
 }
 
 pub struct Response {
-    request_id: u32,
-    result: Result<(), String>
+    pub request_id: u32,
+    pub result: Result<(), schnapsen::Error>
 }

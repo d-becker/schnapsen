@@ -1,4 +1,4 @@
-use cards::{Card, Suit, Rank};
+use cards::{Card, Suit};
 
 use std::vec::Vec;
 
@@ -28,3 +28,6 @@ impl Player {
 fn sum_card_slice(slice: &[Card]) -> u32 {
     slice.iter().map(|&card| super::value(card)).sum()
 }
+
+#[cfg(test)]
+mod tests;
