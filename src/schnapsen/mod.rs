@@ -1,9 +1,13 @@
-pub use cards::{Card, Suit, Rank};
+mod player;
+
+use cards::{Card, Suit, Rank};
 
 use std::vec::Vec;
 
 use rand;
 use rand::Rng;
+
+use self::player::Player;
 
 pub fn value(card: Card) -> u32 {
     match card.rank() {
@@ -65,19 +69,6 @@ fn legal_second_card_in_endgame(_hand1: &[Card], card1: Card,
     
 }
 
-fn sum_card_slice(slice: &[Card]) -> u32 {
-    slice.iter().map(|&card| value(card)).sum()
-}
-
-#[derive(Default, Debug)]
-pub struct Player {
-    name: String,
-    hand: Vec<Card>,
-    wins: Vec<Card>,
-    twenties: Vec<Suit>,
-    forty: Option<Suit>
-}
-
 #[derive(Debug)]
 pub struct Game {
     stock: Vec<Card>,
@@ -94,20 +85,6 @@ impl Default for Game {
     fn default() -> Self {
         let deck = generate_deck();
         Game::new_(deck)
-    }
-}
-
-impl Player {
-    pub fn new(name: String) -> Player {
-        Player {name, ..Default::default()}
-    }
-
-    pub fn score(&self) -> u32 {
-        let tricks = sum_card_slice(&self.wins);
-        let twenties = self.twenties.len() as u32 * 20;
-        let forty = self.forty.map(|_| 40).unwrap_or(0);
-
-        tricks + twenties + forty
     }
 }
 
