@@ -8,7 +8,16 @@ use std::vec::Vec;
 pub use self::game::Game;
 pub use self::player::Player;
 
-pub enum Error {
+#[derive(Debug, Eq, PartialEq)]
+pub enum ErrorKind {
+    GameOver,
+    DeckClosed,
+    NotEnoughCardsInStock,
+    NoSuchCardInHand(Card),
+    AlreadyCalledThisTwenty(Suit),
+    TwentyWithTrumpSuit,
+    AlreadyCalledForty,
+    
     GENERIC_ERROR,
 }
 

@@ -2,7 +2,7 @@ use rand;
 use rand::Rng;
 
 use cards::{Card, Suit, Rank};
-use schnapsen::player::Player;
+use schnapsen::{ErrorKind, player::Player};
 use schnapsen::{generate_deck, first_beats_second, value};
 
 #[derive(Debug)]
@@ -75,38 +75,55 @@ impl Game {
         self.closed
     }
 
-    pub fn can_close(&self) -> bool {
-        !self.is_game_over() && !self.is_closed() && self.stock.len() > 2
+    pub fn can_close(&self) -> Result<(), ErrorKind> {
+        if self.is_game_over() {
+            Err(ErrorKind::GameOver)
+        } else if self.is_closed() {
+            Err(ErrorKind::DeckClosed)
+        } else if self.stock.len() <= 2 {
+            Err(ErrorKind::NotEnoughCardsInStock)
+        } else {
+            Ok(())
+        }
     }
     
-    pub fn close(&mut self) -> bool {
+    pub fn close(&mut self) -> Result<(), ErrorKind> {
         let can_close = self.can_close();
 
-        if can_close {
+        if can_close.is_ok() {
             self.closed = true;
         }
         
         can_close
     }
 
-    pub fn can_exchange_trump(&self) -> bool {
-        if self.is_game_over() || self.is_closed() || self.stock.len() <= 2 {
-            return false;
-        }
-
-        let current_player =
+    pub fn can_exchange_trump(&self) -> Result<(), ErrorKind> {
+        if self.is_game_over() {
+            Err(ErrorKind::GameOver)
+        } else if self.is_closed() {
+            Err(ErrorKind::DeckClosed)
+        } else if self.stock.len() <= 2 {
+            Err(ErrorKind::NotEnoughCardsInStock)
+        } else {
+            let current_player =
             if self.player1_next {
                 &self.player1
             } else {
                 &self.player2
             };
         
-        current_player.hand.contains(&Card::new(self.trump, Rank::Unter))
+            let trump_unter = Card::new(self.trump, Rank::Unter);
+            if current_player.hand.contains(&trump_unter) {
+                Ok(())
+            } else {
+                Err(ErrorKind::NoSuchCardInHand(trump_unter))
+            }
+        }
     }
 
-    pub fn exchange_trump(&mut self) -> bool {
+    pub fn exchange_trump(&mut self) -> Result<(), ErrorKind> {
         let can_exchange_trump = self.can_exchange_trump();
-        if can_exchange_trump {
+        if can_exchange_trump.is_ok() {
             let trump = self.trump;
             
             let current_player =
@@ -126,9 +143,9 @@ impl Game {
         can_exchange_trump
     }
 
-    pub fn can_call_twenty(&self, suit: Suit) -> bool {
+    pub fn can_call_twenty(&self, suit: Suit) -> Result<(), ErrorKind> {
         if self.is_game_over() {
-            return false;
+            return Err(ErrorKind::GameOver);
         }
         
         let current_player = if self.player1_next {
@@ -137,16 +154,26 @@ impl Game {
             &self.player2
         };
 
-        current_player.hand.contains(&Card::new(suit, Rank::Ober))
-            && current_player.hand.contains(&Card::new(suit, Rank::King))
-            && !current_player.twenties.contains(&suit)
-            && suit != self.trump
+        let ober = Card::new(suit, Rank::Ober);
+        let king = Card::new(suit, Rank::King);
+        
+        if !current_player.hand.contains(&ober) {
+            Err(ErrorKind::NoSuchCardInHand(ober))
+        } else if !current_player.hand.contains(&king) {
+            Err(ErrorKind::NoSuchCardInHand(king))
+        } else if current_player.twenties.contains(&suit) {
+            Err(ErrorKind::AlreadyCalledThisTwenty(suit))
+        } else if suit == self.trump {
+            Err(ErrorKind::TwentyWithTrumpSuit)
+        } else {
+            Ok(())
+        }
     }
 
-    pub fn call_twenty(&mut self, suit: Suit) -> bool {
+    pub fn call_twenty(&mut self, suit: Suit) -> Result<(), ErrorKind> {
         let can_call_twenty = self.can_call_twenty(suit);
 
-        if can_call_twenty {
+        if can_call_twenty.is_ok() {
             let current_player = if self.player1_next {
                 &mut self.player1
             } else {
@@ -159,9 +186,9 @@ impl Game {
         can_call_twenty
     }
 
-    pub fn can_call_forty(&self) -> bool {
+    pub fn can_call_forty(&self) -> Result<(), ErrorKind> {
         if self.is_game_over() {
-            return false;
+            return Err(ErrorKind::GameOver);
         }
         
         let current_player = if self.player1_next {
@@ -169,15 +196,24 @@ impl Game {
         } else {
             &self.player2
         };
+
+        let ober = Card::new(self.trump, Rank::Ober);
+        let unter = Card::new(self.trump, Rank::King);
         
-        current_player.hand.contains(&Card::new(self.trump, Rank::Ober))
-            && current_player.hand.contains(&Card::new(self.trump, Rank::King))
-            && current_player.forty.is_none()
+        if !current_player.hand.contains(&ober) {
+            Err(ErrorKind::NoSuchCardInHand(ober))
+        } else if !current_player.hand.contains(&unter) {
+            Err(ErrorKind::NoSuchCardInHand(unter))
+        } else if current_player.forty.is_some() {
+            Err(ErrorKind::AlreadyCalledForty)
+        } else {
+            Ok(())
+        }
     }
 
-    pub fn call_forty(&mut self) -> bool {
+    pub fn call_forty(&mut self) -> Result<(), ErrorKind> {
         let can_call_forty = self.can_call_forty();
-        if can_call_forty {
+        if can_call_forty.is_ok() {
             let current_player = if self.player1_next {
                 &mut self.player1
             } else {

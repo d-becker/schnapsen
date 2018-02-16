@@ -40,10 +40,10 @@ fn test_close_ok() {
 
     assert!(!game.is_closed());
 
-    assert!(game.can_close());
+    assert!(game.can_close().is_ok());
     let result = game.close();
 
-    assert!(result);
+    assert!(result.is_ok());
     assert!(game.is_closed());
 }
 
@@ -53,13 +53,14 @@ fn test_close_already_closed() {
 
     assert!(!game.is_closed());
 
-    game.close();
+    let close_result = game.close();
+    assert!(close_result.is_ok());
     assert!(game.is_closed());
 
-    assert!(!game.can_close());
+    assert!(!game.can_close().is_ok());
     
     let result = game.close();
-    assert!(!result);
+    assert_eq!(Err(ErrorKind::DeckClosed), result);
 }
 
 #[test]
@@ -73,10 +74,10 @@ fn test_close_not_enough_cards_left() {
 
     assert!(!game.is_closed());
 
-    assert!(!game.can_close());
+    assert!(!game.can_close().is_ok());
     let result = game.close();
 
-    assert!(!result);
+    assert_eq!(Err(ErrorKind::NotEnoughCardsInStock), result);
     assert!(!game.is_closed());
 }
 
@@ -107,10 +108,13 @@ fn test_exchange_trump_not_having_trump_unter() {
 
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
-    assert!(!game.can_exchange_trump());
+    let trump_unter = Card::new(trump, Rank::Unter);
+
+    let expected_error = Err(ErrorKind::NoSuchCardInHand(trump_unter));
+    assert_eq!(expected_error, game.can_exchange_trump());
 
     let result = game.exchange_trump();
-    assert!(!result);
+    assert_eq!(expected_error, result);
 
     assert_eq!(trump_card, game.trump_card().unwrap());
 }
@@ -140,10 +144,12 @@ fn test_exchange_trump_not_enough_cards_in_stock() {
 
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
-    assert!(!game.can_exchange_trump());
+    let expected_error = Err(ErrorKind::NotEnoughCardsInStock);
+    
+    assert_eq!(expected_error, game.can_exchange_trump());
 
     let result = game.exchange_trump();
-    assert!(!result);
+    assert_eq!(expected_error, result);
 
     assert_eq!(trump_card, game.trump_card().unwrap());
 }
@@ -175,13 +181,16 @@ fn test_exchange_trump_closed() {
 
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
-    game.close();
+    let close_result = game.close();
+    assert!(close_result.is_ok());
     assert!(game.is_closed());
+
+    let expected_error = Err(ErrorKind::DeckClosed);
     
-    assert!(!game.can_exchange_trump());
+    assert_eq!(expected_error, game.can_exchange_trump());
 
     let result = game.exchange_trump();
-    assert!(!result);
+    assert_eq!(expected_error, result);
 
     assert_eq!(None, game.trump_card());
     assert!(game.player1.hand.contains(&Card::new(trump, Rank::Unter)));
@@ -190,9 +199,9 @@ fn test_exchange_trump_closed() {
 #[test]
 fn exchange_trump_ok() {
      let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
-                    Card{suit: Suit::Hearts, rank: Rank::King},
-                    Card{suit: Suit::Hearts, rank: Rank::Ten},
-                    Card{suit: Suit::Hearts, rank: Rank::Ace}];
+                      Card{suit: Suit::Hearts, rank: Rank::King},
+                      Card{suit: Suit::Hearts, rank: Rank::Ten},
+                      Card{suit: Suit::Hearts, rank: Rank::Ace}];
 
     let player1_hand = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
                             Card{suit: Suit::Bells, rank: Rank::Ober},
@@ -214,10 +223,10 @@ fn exchange_trump_ok() {
 
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
-    assert!(game.can_exchange_trump());
+    assert!(game.can_exchange_trump().is_ok());
 
     let result = game.exchange_trump();
-    assert!(result);
+    assert!(result.is_ok());
 
     assert_eq!(Card::new(trump, Rank::Unter), game.trump_card().unwrap());
     assert!(game.player1.hand.contains(&trump_card));
@@ -244,10 +253,13 @@ fn test_call_twenty_no_such_cards() {
     let mut game = Game {stock, trump: Suit::Hearts,
                          player1, player2, ..Default::default()};
 
-    assert!(!game.can_call_twenty(Suit::Bells));
+    let expected_error = Err(ErrorKind::NoSuchCardInHand(
+        Card::new(Suit::Bells, Rank::Ober)));
+
+    assert_eq!(expected_error, game.can_call_twenty(Suit::Bells));
 
     let result = game.call_twenty(Suit::Bells);
-    assert!(!result);
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -273,13 +285,17 @@ fn test_call_twenty_already_called_the_same() {
 
     let twenty_suit = Suit::Bells;
     
-    game.call_twenty(twenty_suit);
+    let twenty_result = game.call_twenty(twenty_suit);
+    assert!(twenty_result.is_ok());
+
+    let expected_error = Err(ErrorKind::AlreadyCalledThisTwenty(twenty_suit));
+    
     assert!(game.player1.twenties.contains(&twenty_suit));
 
-    assert!(!game.can_call_twenty(twenty_suit));
+    assert_eq!(expected_error, game.can_call_twenty(twenty_suit));
 
     let result = game.call_twenty(twenty_suit);
-    assert!(!result);
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -305,10 +321,12 @@ fn test_call_twenty_suit_is_trump() {
     let mut game = Game {stock, trump: twenty_suit, player1,
                          player2, ..Default::default()};
 
-    assert!(!game.can_call_twenty(twenty_suit));
+    let expected_error = Err(ErrorKind::TwentyWithTrumpSuit);
+
+    assert_eq!(expected_error, game.can_call_twenty(twenty_suit));
 
     let result = game.call_twenty(twenty_suit);
-    assert!(!result);
+    assert_eq!(expected_error, result);
 
     assert!(!game.player1.twenties.contains(&twenty_suit));
 }
@@ -334,10 +352,10 @@ fn test_call_twenty_ok() {
     let mut game = Game {stock, player1, player2, ..Default::default()};
 
     let twenty_suit = Suit::Bells;
-    assert!(game.can_call_twenty(twenty_suit));
+    assert!(game.can_call_twenty(twenty_suit).is_ok());
 
     let result = game.call_twenty(twenty_suit);
-    assert!(result);
+    assert!(result.is_ok());
 
     assert!(game.player1.twenties.contains(&twenty_suit));
 }
@@ -363,10 +381,13 @@ fn test_call_forty_no_such_cards() {
     let trump = Suit::Bells;
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
-    assert!(!game.can_call_forty());
+    let expected_error = Err(ErrorKind::NoSuchCardInHand(
+        Card::new(trump, Rank::Ober)));
+    
+    assert_eq!(expected_error, game.can_call_forty());
 
     let result = game.call_forty();
-    assert!(!result);
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -390,13 +411,15 @@ fn test_call_forty_already_called_the_same() {
     let trump = Suit::Bells;
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
     
-    game.call_forty();
+    let forty_result = game.call_forty();
+    assert!(forty_result.is_ok());
     assert_eq!(Some(trump), game.player1.forty);
 
-    assert!(!game.can_call_forty());
+    let expected_error = Err(ErrorKind::AlreadyCalledForty);
+    assert_eq!(expected_error, game.can_call_forty());
 
     let result = game.call_forty();
-    assert!(!result);
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -420,10 +443,10 @@ fn test_call_forty_ok() {
     let trump = Suit::Bells;
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
-    assert!(game.can_call_forty());
+    assert!(game.can_call_forty().is_ok());
 
     let result = game.call_forty();
-    assert!(result);
+    assert!(result.is_ok());
 
     assert_eq!(Some(trump), game.player1.forty);
 }
@@ -541,7 +564,7 @@ fn test_next_turn_illegal_suit() {
 
     let closing_successful = game.close();
 
-    assert!(closing_successful);
+    assert!(closing_successful.is_ok());
     assert!(game.is_closed());
 
     let result = game.next_turn(player1_card, player2_card);
@@ -671,7 +694,8 @@ fn test_next_turn_ok_template(should_be_closed: bool) {
     };
 
     if should_be_closed {
-        game.close();
+        let close_result = game.close();
+        assert!(close_result.is_ok());
         assert!(game.is_closed());
     }
 

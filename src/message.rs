@@ -17,5 +17,5 @@ pub struct Request {
 
 pub struct Response {
     pub request_id: u32,
-    pub result: Result<(), schnapsen::Error>
+    pub result: Result<(), schnapsen::ErrorKind>
 }
