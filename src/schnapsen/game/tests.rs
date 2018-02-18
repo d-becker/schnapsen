@@ -50,7 +50,7 @@ fn test_close_ok() {
 }
 
 #[test]
-fn test_close_player_not_on_turn() {
+fn test_close_not_on_turn() {
     let mut game = Game::default();
 
     let player2_marker = game.player_on_turn().other();
@@ -67,7 +67,7 @@ fn test_close_player_not_on_turn() {
 }
 
 #[test]
-fn test_close_player_not_on_lead() {
+fn test_close_not_on_lead() {
     let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
                      Card{suit: Suit::Hearts, rank: Rank::King},
                      Card{suit: Suit::Hearts, rank: Rank::Ten},
@@ -143,6 +143,16 @@ fn test_close_not_enough_cards_left() {
 
     assert_eq!(Err(ErrorKind::NotEnoughCardsInStock), result);
     assert!(!game.is_closed());
+}
+
+#[test]
+fn test_exchange_trump_not_on_turn() {
+    assert!(false);
+}
+
+#[test]
+fn test_exchange_trump_not_on_lead() {
+    assert!(false);
 }
 
 #[test]
@@ -262,7 +272,7 @@ fn test_exchange_trump_closed() {
 }
 
 #[test]
-fn exchange_trump_ok() {
+fn test_exchange_trump_ok() {
      let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
                       Card{suit: Suit::Hearts, rank: Rank::King},
                       Card{suit: Suit::Hearts, rank: Rank::Ten},
@@ -298,6 +308,16 @@ fn exchange_trump_ok() {
 }
 
 #[test]
+fn test_call_twenty_not_on_turn() {
+    assert!(false);
+}
+
+#[test]
+fn test_call_twenty_not_on_lead() {
+    assert!(false);
+}
+
+#[test]
 fn test_call_twenty_no_such_cards() {
     let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
@@ -318,12 +338,15 @@ fn test_call_twenty_no_such_cards() {
     let mut game = Game {stock, trump: Suit::Hearts,
                          player1, player2, ..Default::default()};
 
+    let player1_marker = game.player_on_turn();
+    
     let expected_error = Err(ErrorKind::NoSuchCardInHand(
         Card::new(Suit::Bells, Rank::Ober)));
 
-    assert_eq!(expected_error, game.can_call_twenty(Suit::Bells));
+    assert_eq!(expected_error,
+               game.can_call_twenty(player1_marker, Suit::Bells));
 
-    let result = game.call_twenty(Suit::Bells);
+    let result = game.call_twenty(player1_marker, Suit::Bells);
     assert_eq!(expected_error, result);
 }
 
@@ -348,18 +371,21 @@ fn test_call_twenty_already_called_the_same() {
     let mut game = Game {stock, trump: Suit::Hearts,
                          player1, player2, ..Default::default()};
 
+    let player1_marker = game.player_on_turn();
+    
     let twenty_suit = Suit::Bells;
     
-    let twenty_result = game.call_twenty(twenty_suit);
+    let twenty_result = game.call_twenty(player1_marker, twenty_suit);
     assert!(twenty_result.is_ok());
 
     let expected_error = Err(ErrorKind::AlreadyCalledThisTwenty(twenty_suit));
     
     assert!(game.player1.twenties.contains(&twenty_suit));
 
-    assert_eq!(expected_error, game.can_call_twenty(twenty_suit));
+    assert_eq!(expected_error,
+               game.can_call_twenty(player1_marker, twenty_suit));
 
-    let result = game.call_twenty(twenty_suit);
+    let result = game.call_twenty(player1_marker, twenty_suit);
     assert_eq!(expected_error, result);
 }
 
@@ -386,11 +412,14 @@ fn test_call_twenty_suit_is_trump() {
     let mut game = Game {stock, trump: twenty_suit, player1,
                          player2, ..Default::default()};
 
+    let player1_marker = game.player_on_turn();
+    
     let expected_error = Err(ErrorKind::TwentyWithTrumpSuit);
 
-    assert_eq!(expected_error, game.can_call_twenty(twenty_suit));
+    assert_eq!(expected_error,
+               game.can_call_twenty(player1_marker, twenty_suit));
 
-    let result = game.call_twenty(twenty_suit);
+    let result = game.call_twenty(player1_marker, twenty_suit);
     assert_eq!(expected_error, result);
 
     assert!(!game.player1.twenties.contains(&twenty_suit));
@@ -416,13 +445,25 @@ fn test_call_twenty_ok() {
     
     let mut game = Game {stock, player1, player2, ..Default::default()};
 
+    let player1_marker = game.player_on_turn();
+    
     let twenty_suit = Suit::Bells;
-    assert!(game.can_call_twenty(twenty_suit).is_ok());
+    assert!(game.can_call_twenty(player1_marker, twenty_suit).is_ok());
 
-    let result = game.call_twenty(twenty_suit);
+    let result = game.call_twenty(player1_marker, twenty_suit);
     assert!(result.is_ok());
 
     assert!(game.player1.twenties.contains(&twenty_suit));
+}
+
+#[test]
+fn test_call_forty_not_on_turn() {
+    assert!(false);
+}
+
+#[test]
+fn test_call_forty_not_on_lead() {
+    assert!(false);
 }
 
 #[test]
@@ -520,6 +561,16 @@ fn test_call_forty_ok() {
     assert!(result.is_ok());
 
     assert_eq!(Some(trump), game.player1.forty);
+}
+
+#[test]
+fn test_declare_win_not_on_turn() {
+    assert!(false);
+}
+
+#[test]
+fn test_declare_win_not_on_lead() {
+    assert!(false);
 }
 
 #[test]

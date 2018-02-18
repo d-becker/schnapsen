@@ -177,15 +177,16 @@ impl Game {
         can_exchange_trump
     }
 
-    pub fn can_call_twenty(&self, suit: Suit) -> Result<(), ErrorKind> {
+    pub fn can_call_twenty(&self, player: Players, suit: Suit)
+                           -> Result<(), ErrorKind> {
+        self.on_turn(player)?;
+        self.on_lead(player)?;
+        
         if self.is_game_over() {
             return Err(ErrorKind::GameOver);
         }
         
-        let current_player = match self.player_on_lead {
-                Players::Player1 =>  &self.player1,
-                Players::Player2 =>  &self.player2
-        };
+        let current_player = self.get_player(player);
 
         let ober = Card::new(suit, Rank::Ober);
         let king = Card::new(suit, Rank::King);
@@ -203,14 +204,12 @@ impl Game {
         }
     }
 
-    pub fn call_twenty(&mut self, suit: Suit) -> Result<(), ErrorKind> {
-        let can_call_twenty = self.can_call_twenty(suit);
+    pub fn call_twenty(&mut self, player: Players, suit: Suit)
+                       -> Result<(), ErrorKind> {
+        let can_call_twenty = self.can_call_twenty(player, suit);
 
         if can_call_twenty.is_ok() {
-            let current_player = match self.player_on_lead {
-                Players::Player1 =>  &mut self.player1,
-                Players::Player2 =>  &mut self.player2
-            };
+            let current_player = self.get_player_mut(player);
 
             current_player.twenties.push(suit);
         }
