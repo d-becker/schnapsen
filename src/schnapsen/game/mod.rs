@@ -260,9 +260,12 @@ impl Game {
         self.game_over
     }
 
-    pub fn can_declare_win(&self) -> bool {
+    pub fn can_declare_win(&self, player: Players) -> Result<(), ErrorKind> {
+        self.on_turn(player)?;
+        self.on_lead(player)?;
+        
         if self.is_game_over() {
-            return false;
+            return Err(ErrorKind::GameOver);
         }
         
         let current_player = match self.player_on_lead {
@@ -270,12 +273,18 @@ impl Game {
             Players::Player2 =>  &self.player2
         };
 
-        current_player.score() >= 66
+        let player_score = current_player.score();
+        
+        if player_score < 66 {
+            Err(ErrorKind::ScoreTooLow(player_score))
+        } else {
+            Ok(())
+        }
     }
     
-    pub fn declare_win(&mut self) -> bool {
-        let can_declare_win = self.can_declare_win();
-        if can_declare_win {
+    pub fn declare_win(&mut self, player: Players) -> Result<(), ErrorKind> {
+        let can_declare_win = self.can_declare_win(player);
+        if can_declare_win.is_ok() {
             self.game_over = true;
         }
 

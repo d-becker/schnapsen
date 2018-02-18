@@ -529,13 +529,18 @@ fn declare_win_already_game_over() {
     let player1 = Player {wins: player1_wins, ..Default::default()};
     let mut game = Game {player1, ..Default::default()};
 
-    game.declare_win();
-    assert!(game.is_game_over());
+    let player1_marker = game.player_on_turn();
     
-    assert!(!game.can_declare_win());
+    let first_win_declaration_result = game.declare_win(player1_marker);
+    assert!(first_win_declaration_result.is_ok());
+    assert!(game.is_game_over());
 
-    let result = game.declare_win();
-    assert!(!result);
+    let expected_error = Err(ErrorKind::GameOver);
+    
+    assert_eq!(expected_error, game.can_declare_win(player1_marker));
+
+    let result = game.declare_win(player1_marker);
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -545,10 +550,13 @@ fn declare_win_not_enough() {
     let player1 = Player {wins: player1_wins, ..Default::default()};
     let mut game = Game {player1, ..Default::default()};
 
-    assert!(!game.can_declare_win());
+    let player1_marker = game.player_on_turn();
+    
+    let expected_error = Err(ErrorKind::ScoreTooLow(game.player1.score()));
+    assert_eq!(expected_error, game.can_declare_win(player1_marker));
 
-    let result = game.declare_win();
-    assert!(!result);
+    let result = game.declare_win(player1_marker);
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -564,10 +572,12 @@ fn declare_win_ok() {
     let player1 = Player {wins: player1_wins, ..Default::default()};
     let mut game = Game {player1, ..Default::default()};
 
-    assert!(game.can_declare_win());
+    let player1_marker = game.player_on_turn();
+    
+    assert!(game.can_declare_win(player1_marker).is_ok());
 
-    let result = game.declare_win();
-    assert!(result);
+    let result = game.declare_win(player1_marker);
+    assert!(result.is_ok());
 }
 
 #[test]
@@ -587,10 +597,12 @@ fn test_play_game_already_over() {
                           ..Default::default()};
     let mut game = Game {player1, ..Default::default()};
 
-    game.declare_win();
+    let player1_marker = game.player_on_turn();
+
+    let declare_win_result = game.declare_win(player1_marker);
+    assert!(declare_win_result.is_ok());
     assert!(game.is_game_over());
 
-    let player1_marker = game.player_on_turn();
     let card = game.player1.hand[0];
 
     let expected_error = Err(ErrorKind::GameOver);

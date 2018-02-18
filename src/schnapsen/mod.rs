@@ -22,6 +22,7 @@ pub enum ErrorKind {
     MustUseAnotherSuit(Suit),
     MustTake(Card),
     MustUseTrump,
+    ScoreTooLow(u32)
 }
 
 pub fn value(card: Card) -> u32 {
