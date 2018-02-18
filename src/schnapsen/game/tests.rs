@@ -686,11 +686,13 @@ fn declare_win_ok() {
                             Card::new(Suit::Leaves, Rank::Ober)];
     let player1 = Player {wins: player1_wins, ..Default::default()};
     let mut game = Game {player1, ..Default::default()};
-    
+
+    let player1_marker = game.player_on_turn();
     assert!(game.can_declare_win().is_ok());
 
     let result = game.declare_win();
     assert!(result.is_ok());
+    assert_eq!(Some(player1_marker), game.winner());
 }
 
 #[test]
@@ -770,96 +772,6 @@ pub fn test_play_card_player1_card_ok() {
     assert_eq!(Some(card), game.first_card_in_trick);
     assert!(!game.player1.hand.contains(&card));
     assert_eq!(player1_marker.other(), game.player_on_turn());
-}
-
-#[test]
-pub fn test_play_card_player2_card_ok_not_closed() {
-    test_play_card_player2_card_ok_template(false);
-}
-
-#[test]
-pub fn test_play_card_player2_card_ok_closed() {
-    test_play_card_player2_card_ok_template(true);
-}
-
-fn test_play_card_player2_card_ok_template(should_be_closed: bool) {
-    let stock = vec![
-        Card{suit: Suit::Hearts, rank: Rank::Unter},
-        Card{suit: Suit::Hearts, rank: Rank::Ober},
-        Card{suit: Suit::Hearts, rank: Rank::King},
-        Card{suit: Suit::Hearts, rank: Rank::Ten},
-        Card{suit: Suit::Hearts, rank: Rank::Ace},
-        
-        Card{suit: Suit::Acorns, rank: Rank::Unter},
-        Card{suit: Suit::Acorns, rank: Rank::Ober},
-        Card{suit: Suit::Acorns, rank: Rank::King},
-        Card{suit: Suit::Acorns, rank: Rank::Ten},
-        Card{suit: Suit::Acorns, rank: Rank::Ace},
-    ];
-
-    let original_stock_size = stock.len();
-    
-    let trump = stock[0].suit();
-
-    let player1_hand = vec![
-        Card{suit: Suit::Bells, rank: Rank::Unter},
-        Card{suit: Suit::Bells, rank: Rank::Ober},
-        Card{suit: Suit::Bells, rank: Rank::King},
-        Card{suit: Suit::Leaves, rank: Rank::Ace},
-        Card{suit: Suit::Bells, rank: Rank::Ten},
-    ];
-
-    let player2_hand = vec![
-        Card{suit: Suit::Leaves, rank: Rank::Unter},
-        Card{suit: Suit::Leaves, rank: Rank::Ober},
-        Card{suit: Suit::Leaves, rank: Rank::King},
-        Card{suit: Suit::Leaves, rank: Rank::Ten},
-        Card{suit: Suit::Bells, rank: Rank::Ace},
-    ];
-
-    let player1 = Player {name: "Player1".to_string(), hand: player1_hand,
-                          ..Default::default()};
-    let player2 = Player {name: "Player2".to_string(), hand: player2_hand,
-                          ..Default::default()};
-    
-    let mut game = Game {
-        stock, trump, player1, player2, ..Default::default()
-    };
-
-    let player1_marker = game.player_on_turn();
-    let player2_marker = player1_marker.other();
-
-    if should_be_closed {
-        let close_result = game.close();
-        assert!(close_result.is_ok());
-        assert!(game.is_closed());
-    }
-
-    let card1 = game.player1.hand[4];
-    let card2 = game.player2.hand[4];
-
-    let first_card_result = game.play_card(card1);
-    assert!(first_card_result.is_ok());
-
-    assert!(game.can_play_card(card2).is_ok());
-    
-    let result = game.play_card(card2);
-    assert!(result.is_ok());
-
-    assert!(!game.player1.hand.contains(&card1));
-    assert!(!game.player2.hand.contains(&card2));
-
-    let cards_less = if should_be_closed {1} else {0};
-    assert_eq!(5 - cards_less, game.player1.hand.len());
-    assert_eq!(5 - cards_less, game.player2.hand.len());
-
-    let dealed_cards = if should_be_closed {0} else {2};
-    assert_eq!(original_stock_size - dealed_cards, game.stock.len());
-    
-    assert!(game.player2.wins.contains(&card1));
-    assert!(game.player2.wins.contains(&card2));
-    assert_eq!(player2_marker, game.player_on_lead());
-    assert_eq!(player2_marker, game.player_on_turn());
 }
 
 #[test]
@@ -993,4 +905,126 @@ fn test_play_card_stock_depleted_must_use_trump() {
 
     let result = game.play_card(card2);
     assert_eq!(expected_error, result);
+}
+
+#[test]
+pub fn test_play_card_player2_card_ok_not_closed() {
+    test_play_card_player2_card_ok_template(false);
+}
+
+#[test]
+pub fn test_play_card_player2_card_ok_closed() {
+    test_play_card_player2_card_ok_template(true);
+}
+
+fn test_play_card_player2_card_ok_template(should_be_closed: bool) {
+    let stock = vec![
+        Card{suit: Suit::Hearts, rank: Rank::Unter},
+        Card{suit: Suit::Hearts, rank: Rank::Ober},
+        Card{suit: Suit::Hearts, rank: Rank::King},
+        Card{suit: Suit::Hearts, rank: Rank::Ten},
+        Card{suit: Suit::Hearts, rank: Rank::Ace},
+        
+        Card{suit: Suit::Acorns, rank: Rank::Unter},
+        Card{suit: Suit::Acorns, rank: Rank::Ober},
+        Card{suit: Suit::Acorns, rank: Rank::King},
+        Card{suit: Suit::Acorns, rank: Rank::Ten},
+        Card{suit: Suit::Acorns, rank: Rank::Ace},
+    ];
+
+    let original_stock_size = stock.len();
+    
+    let trump = stock[0].suit();
+
+    let player1_hand = vec![
+        Card{suit: Suit::Bells, rank: Rank::Unter},
+        Card{suit: Suit::Bells, rank: Rank::Ober},
+        Card{suit: Suit::Bells, rank: Rank::King},
+        Card{suit: Suit::Leaves, rank: Rank::Ace},
+        Card{suit: Suit::Bells, rank: Rank::Ten},
+    ];
+
+    let player2_hand = vec![
+        Card{suit: Suit::Leaves, rank: Rank::Unter},
+        Card{suit: Suit::Leaves, rank: Rank::Ober},
+        Card{suit: Suit::Leaves, rank: Rank::King},
+        Card{suit: Suit::Leaves, rank: Rank::Ten},
+        Card{suit: Suit::Bells, rank: Rank::Ace},
+    ];
+
+    let player1 = Player {name: "Player1".to_string(), hand: player1_hand,
+                          ..Default::default()};
+    let player2 = Player {name: "Player2".to_string(), hand: player2_hand,
+                          ..Default::default()};
+    
+    let mut game = Game {
+        stock, trump, player1, player2, ..Default::default()
+    };
+
+    let player1_marker = game.player_on_turn();
+    let player2_marker = player1_marker.other();
+
+    if should_be_closed {
+        let close_result = game.close();
+        assert!(close_result.is_ok());
+        assert!(game.is_closed());
+    }
+
+    let card1 = game.player1.hand[4];
+    let card2 = game.player2.hand[4];
+
+    let first_card_result = game.play_card(card1);
+    assert!(first_card_result.is_ok());
+
+    assert!(game.can_play_card(card2).is_ok());
+    
+    let result = game.play_card(card2);
+    assert!(result.is_ok());
+
+    assert!(!game.player1.hand.contains(&card1));
+    assert!(!game.player2.hand.contains(&card2));
+
+    let cards_less = if should_be_closed {1} else {0};
+    assert_eq!(5 - cards_less, game.player1.hand.len());
+    assert_eq!(5 - cards_less, game.player2.hand.len());
+
+    let dealed_cards = if should_be_closed {0} else {2};
+    assert_eq!(original_stock_size - dealed_cards, game.stock.len());
+    
+    assert!(game.player2.wins.contains(&card1));
+    assert!(game.player2.wins.contains(&card2));
+    assert_eq!(player2_marker, game.player_on_lead());
+    assert_eq!(player2_marker, game.player_on_turn());
+}
+
+#[test]
+fn play_last_cards_game_over() {
+    let stock = Vec::new();
+
+    let card1 = Card::new(Suit::Leaves, Rank::Ten);
+    let card2 = Card::new(Suit::Leaves, Rank::Ace);
+    
+    let hand1 = vec![card1];
+    let hand2 = vec![card2];
+
+    let player1 = Player {hand: hand1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Leaves;
+
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+
+    let player1_marker = game.player_on_turn();
+    let player2_marker = player1_marker.other();
+
+    let first_card_result = game.play_card(card1);
+    assert!(first_card_result.is_ok());
+
+    assert_eq!(player2_marker, game.player_on_turn());
+
+    let second_card_result = game.play_card(card2);
+    assert!(second_card_result.is_ok());
+
+    assert!(game.is_game_over());
+    assert_eq!(Some(player2_marker), game.winner);
 }

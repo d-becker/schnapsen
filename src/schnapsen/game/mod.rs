@@ -10,7 +10,7 @@ pub struct Game {
     stock: Vec<Card>,
     trump: Suit,
     closed: bool,
-    game_over: bool,
+    winner: Option<Players>,
 
     player1: Player,
     player2: Player,
@@ -39,7 +39,7 @@ impl Game {
         Game {stock,
               trump,
               closed: false,
-              game_over: false,
+              winner: None,
               player1: Player {name: "Player1".to_string(),
                                hand: hand1, ..Default::default()},
               player2: Player {name: "Player2".to_string(),
@@ -241,7 +241,11 @@ impl Game {
     }
 
     pub fn is_game_over(&self) -> bool {
-        self.game_over
+        self.winner.is_some()
+    }
+
+    pub fn winner(&self) -> Option<Players> {
+        self.winner
     }
 
     pub fn can_declare_win(&self) -> Result<(), ErrorKind> {
@@ -266,7 +270,7 @@ impl Game {
     pub fn declare_win(&mut self) -> Result<(), ErrorKind> {
         let can_declare_win = self.can_declare_win();
         if can_declare_win.is_ok() {
-            self.game_over = true;
+            self.winner = Some(self.player_on_turn());
         }
 
         can_declare_win
@@ -322,6 +326,10 @@ impl Game {
                 self.deal_if_not_closed_or_empty(winning_player_marker);
                 self.player_on_lead = winning_player_marker;
                 self.first_card_in_trick = None;
+
+                if self.stock.is_empty() {
+                    self.winner = Some(winning_player_marker);
+                }
             }
         }
         
