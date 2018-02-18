@@ -182,12 +182,14 @@ fn test_exchange_trump_not_having_trump_unter() {
 
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
+    let player1_marker = game.player_on_turn();
+    
     let trump_unter = Card::new(trump, Rank::Unter);
 
     let expected_error = Err(ErrorKind::NoSuchCardInHand(trump_unter));
-    assert_eq!(expected_error, game.can_exchange_trump());
+    assert_eq!(expected_error, game.can_exchange_trump(player1_marker));
 
-    let result = game.exchange_trump();
+    let result = game.exchange_trump(player1_marker);
     assert_eq!(expected_error, result);
 
     assert_eq!(trump_card, game.trump_card().unwrap());
@@ -218,11 +220,13 @@ fn test_exchange_trump_not_enough_cards_in_stock() {
 
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
+    let player1_marker = game.player_on_turn();
+
     let expected_error = Err(ErrorKind::NotEnoughCardsInStock);
     
-    assert_eq!(expected_error, game.can_exchange_trump());
+    assert_eq!(expected_error, game.can_exchange_trump(player1_marker));
 
-    let result = game.exchange_trump();
+    let result = game.exchange_trump(player1_marker);
     assert_eq!(expected_error, result);
 
     assert_eq!(trump_card, game.trump_card().unwrap());
@@ -262,9 +266,9 @@ fn test_exchange_trump_closed() {
 
     let expected_error = Err(ErrorKind::DeckClosed);
     
-    assert_eq!(expected_error, game.can_exchange_trump());
+    assert_eq!(expected_error, game.can_exchange_trump(player1_marker));
 
-    let result = game.exchange_trump();
+    let result = game.exchange_trump(player1_marker);
     assert_eq!(expected_error, result);
 
     assert_eq!(None, game.trump_card());
@@ -298,9 +302,11 @@ fn test_exchange_trump_ok() {
 
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
-    assert!(game.can_exchange_trump().is_ok());
+    let player1_marker = game.player_on_turn();
 
-    let result = game.exchange_trump();
+    assert!(game.can_exchange_trump(player1_marker).is_ok());
+
+    let result = game.exchange_trump(player1_marker);
     assert!(result.is_ok());
 
     assert_eq!(Card::new(trump, Rank::Unter), game.trump_card().unwrap());

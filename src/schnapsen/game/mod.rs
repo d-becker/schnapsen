@@ -135,7 +135,10 @@ impl Game {
         can_close
     }
 
-    pub fn can_exchange_trump(&self) -> Result<(), ErrorKind> {
+    pub fn can_exchange_trump(&self, player: Players) -> Result<(), ErrorKind> {
+        self.on_turn(player)?;
+        self.on_lead(player)?;
+        
         if self.is_game_over() {
             Err(ErrorKind::GameOver)
         } else if self.is_closed() {
@@ -143,10 +146,7 @@ impl Game {
         } else if self.stock.len() <= 2 {
             Err(ErrorKind::NotEnoughCardsInStock)
         } else {
-            let current_player = match self.player_on_lead {
-                Players::Player1 =>  &self.player1,
-                Players::Player2 =>  &self.player2
-            };
+            let current_player = self.get_player(player);
         
             let trump_unter = Card::new(self.trump, Rank::Unter);
             if current_player.hand.contains(&trump_unter) {
@@ -157,20 +157,21 @@ impl Game {
         }
     }
 
-    pub fn exchange_trump(&mut self) -> Result<(), ErrorKind> {
-        let can_exchange_trump = self.can_exchange_trump();
+    pub fn exchange_trump(&mut self, player: Players) -> Result<(), ErrorKind> {
+        let can_exchange_trump = self.can_exchange_trump(player);
         if can_exchange_trump.is_ok() {
             let trump = self.trump;
+            let trump_card = self.trump_card().unwrap();
             
-           let current_player = match self.player_on_lead {
-                Players::Player1 =>  &mut self.player1,
-                Players::Player2 =>  &mut self.player2
-            };
+            {
+                let current_player = self.get_player_mut(player);
+                
+                let index = current_player.hand.iter()
+                    .position(|&card| card == Card::new(trump, Rank::Unter))
+                    .unwrap();
+                current_player.hand[index] = trump_card;
+            }
             
-            let index = current_player.hand.iter()
-                .position(|&card| card == Card::new(trump, Rank::Unter))
-                .unwrap();
-            current_player.hand[index] = self.stock[0];
             self.stock[0] = Card::new(trump, Rank::Unter);
         }
 
