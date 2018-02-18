@@ -2,23 +2,8 @@ use rand;
 use rand::Rng;
 
 use cards::{Card, Suit, Rank};
-use schnapsen::{ErrorKind, player::Player};
+use schnapsen::{ErrorKind, Players, player::Player};
 use schnapsen::{generate_deck, first_beats_second, value};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Players {
-    Player1,
-    Player2
-}
-
-impl Players {
-    pub fn other(&self) -> Players {
-        match *self {
-            Players::Player1 => Players::Player2,
-            Players::Player2 => Players::Player1
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Game {
@@ -453,3 +438,4 @@ fn legal_second_card_in_endgame(_hand1: &[Card], card1: Card,
 
 #[cfg(test)]
 mod tests;
+

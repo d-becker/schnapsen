@@ -1,11 +1,13 @@
 mod game;
 mod player;
+mod game_adapter;
 
 use cards::{Card, Suit, Rank};
 
 use std::vec::Vec;
 
 pub use self::game::Game;
+pub use self::game_adapter::GameAdapter;
 pub use self::player::Player;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -23,6 +25,21 @@ pub enum ErrorKind {
     MustTake(Card),
     MustUseTrump,
     ScoreTooLow(u32)
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Players {
+    Player1,
+    Player2
+}
+
+impl Players {
+    pub fn other(&self) -> Players {
+        match *self {
+            Players::Player1 => Players::Player2,
+            Players::Player2 => Players::Player1
+        }
+    }
 }
 
 pub fn value(card: Card) -> u32 {
