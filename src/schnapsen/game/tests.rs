@@ -446,12 +446,14 @@ fn test_call_forty_no_such_cards() {
     let trump = Suit::Bells;
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
+    let player1_marker = game.player_on_turn();
+    
     let expected_error = Err(ErrorKind::NoSuchCardInHand(
         Card::new(trump, Rank::Ober)));
     
-    assert_eq!(expected_error, game.can_call_forty());
+    assert_eq!(expected_error, game.can_call_forty(player1_marker));
 
-    let result = game.call_forty();
+    let result = game.call_forty(player1_marker);
     assert_eq!(expected_error, result);
 }
 
@@ -475,15 +477,17 @@ fn test_call_forty_already_called_the_same() {
 
     let trump = Suit::Bells;
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+
+    let player1_marker = game.player_on_turn();
     
-    let forty_result = game.call_forty();
+    let forty_result = game.call_forty(player1_marker);
     assert!(forty_result.is_ok());
     assert_eq!(Some(trump), game.player1.forty);
 
     let expected_error = Err(ErrorKind::AlreadyCalledForty);
-    assert_eq!(expected_error, game.can_call_forty());
+    assert_eq!(expected_error, game.can_call_forty(player1_marker));
 
-    let result = game.call_forty();
+    let result = game.call_forty(player1_marker);
     assert_eq!(expected_error, result);
 }
 
@@ -508,9 +512,11 @@ fn test_call_forty_ok() {
     let trump = Suit::Bells;
     let mut game = Game {stock, trump, player1, player2, ..Default::default()};
 
-    assert!(game.can_call_forty().is_ok());
+    let player1_marker = game.player_on_turn();
 
-    let result = game.call_forty();
+    assert!(game.can_call_forty(player1_marker).is_ok());
+
+    let result = game.call_forty(player1_marker);
     assert!(result.is_ok());
 
     assert_eq!(Some(trump), game.player1.forty);

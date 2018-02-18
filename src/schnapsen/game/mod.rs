@@ -218,23 +218,23 @@ impl Game {
         can_call_twenty
     }
 
-    pub fn can_call_forty(&self) -> Result<(), ErrorKind> {
+    pub fn can_call_forty(&self, player: Players) -> Result<(), ErrorKind> {
+        self.on_turn(player)?;
+        self.on_lead(player)?;
+        
         if self.is_game_over() {
             return Err(ErrorKind::GameOver);
         }
         
-        let current_player = match self.player_on_lead {
-            Players::Player1 =>  &self.player1,
-            Players::Player2 =>  &self.player2
-        };
+        let current_player = self.get_player(player);
 
         let ober = Card::new(self.trump, Rank::Ober);
-        let unter = Card::new(self.trump, Rank::King);
+        let king = Card::new(self.trump, Rank::King);
         
         if !current_player.hand.contains(&ober) {
             Err(ErrorKind::NoSuchCardInHand(ober))
-        } else if !current_player.hand.contains(&unter) {
-            Err(ErrorKind::NoSuchCardInHand(unter))
+        } else if !current_player.hand.contains(&king) {
+            Err(ErrorKind::NoSuchCardInHand(king))
         } else if current_player.forty.is_some() {
             Err(ErrorKind::AlreadyCalledForty)
         } else {
@@ -242,15 +242,13 @@ impl Game {
         }
     }
 
-    pub fn call_forty(&mut self) -> Result<(), ErrorKind> {
-        let can_call_forty = self.can_call_forty();
+    pub fn call_forty(&mut self, player: Players) -> Result<(), ErrorKind> {
+        let can_call_forty = self.can_call_forty(player);
         if can_call_forty.is_ok() {
-            let current_player = match self.player_on_lead {
-                Players::Player1 =>  &mut self.player1,
-                Players::Player2 =>  &mut self.player2
-            };
+            let trump = self.trump;
+            let current_player = self.get_player_mut(player);
 
-            current_player.forty = Some(self.trump);
+            current_player.forty = Some(trump);
         }
 
         can_call_forty
@@ -268,10 +266,7 @@ impl Game {
             return Err(ErrorKind::GameOver);
         }
         
-        let current_player = match self.player_on_lead {
-            Players::Player1 =>  &self.player1,
-            Players::Player2 =>  &self.player2
-        };
+        let current_player = self.get_player(player);
 
         let player_score = current_player.score();
         
