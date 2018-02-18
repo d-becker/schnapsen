@@ -5,6 +5,21 @@ use cards::{Card, Suit, Rank};
 use schnapsen::{ErrorKind, player::Player};
 use schnapsen::{generate_deck, first_beats_second, value};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Players {
+    Player1,
+    Player2
+}
+
+impl Players {
+    pub fn other(&self) -> Players {
+        match *self {
+            Players::Player1 => Players::Player2,
+            Players::Player2 => Players::Player1
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Game {
     stock: Vec<Card>,
@@ -14,7 +29,8 @@ pub struct Game {
 
     player1: Player,
     player2: Player,
-    player1_next: bool
+    player_on_lead: Players,
+    first_card_in_trick: Option<Card>
 }
 
 impl Default for Game {
@@ -43,7 +59,8 @@ impl Game {
                                hand: hand1, ..Default::default()},
               player2: Player {name: "Player2".to_string(),
                                hand: hand2, ..Default::default()},
-              player1_next: true
+              player_on_lead: Players::Player1,
+              first_card_in_trick: None
         }
     }
     
@@ -63,6 +80,24 @@ impl Game {
         &self.player2
     }
 
+    pub fn get_player(&self, player: Players) -> &Player {
+        match player {
+            Players::Player1 => self.get_player1(),
+            Players::Player2 => self.get_player2()
+        }
+    }
+
+    pub fn player_on_lead(&self) -> Players {
+        self.player_on_lead
+    }
+    
+    pub fn player_on_turn(&self) -> Players {
+        match self.first_card_in_trick {
+            Some(_) => self.player_on_lead.other(),
+            None => self.player_on_lead
+        }
+    }
+    
     pub fn trump_card(&self) -> Option<Card> {
         if self.closed {
             None
@@ -75,7 +110,10 @@ impl Game {
         self.closed
     }
 
-    pub fn can_close(&self) -> Result<(), ErrorKind> {
+    pub fn can_close(&self, player: Players) -> Result<(), ErrorKind> {
+        self.on_turn(player)?;
+        self.on_lead(player)?;
+        
         if self.is_game_over() {
             Err(ErrorKind::GameOver)
         } else if self.is_closed() {
@@ -87,8 +125,8 @@ impl Game {
         }
     }
     
-    pub fn close(&mut self) -> Result<(), ErrorKind> {
-        let can_close = self.can_close();
+    pub fn close(&mut self, player: Players) -> Result<(), ErrorKind> {
+        let can_close = self.can_close(player);
 
         if can_close.is_ok() {
             self.closed = true;
@@ -105,11 +143,9 @@ impl Game {
         } else if self.stock.len() <= 2 {
             Err(ErrorKind::NotEnoughCardsInStock)
         } else {
-            let current_player =
-            if self.player1_next {
-                &self.player1
-            } else {
-                &self.player2
+            let current_player = match self.player_on_lead {
+                Players::Player1 =>  &self.player1,
+                Players::Player2 =>  &self.player2
             };
         
             let trump_unter = Card::new(self.trump, Rank::Unter);
@@ -126,12 +162,10 @@ impl Game {
         if can_exchange_trump.is_ok() {
             let trump = self.trump;
             
-            let current_player =
-                if self.player1_next {
-                    &mut self.player1
-                } else {
-                    &mut self.player2
-                };
+           let current_player = match self.player_on_lead {
+                Players::Player1 =>  &mut self.player1,
+                Players::Player2 =>  &mut self.player2
+            };
             
             let index = current_player.hand.iter()
                 .position(|&card| card == Card::new(trump, Rank::Unter))
@@ -148,10 +182,9 @@ impl Game {
             return Err(ErrorKind::GameOver);
         }
         
-        let current_player = if self.player1_next {
-            &self.player1
-        } else {
-            &self.player2
+        let current_player = match self.player_on_lead {
+                Players::Player1 =>  &self.player1,
+                Players::Player2 =>  &self.player2
         };
 
         let ober = Card::new(suit, Rank::Ober);
@@ -174,10 +207,9 @@ impl Game {
         let can_call_twenty = self.can_call_twenty(suit);
 
         if can_call_twenty.is_ok() {
-            let current_player = if self.player1_next {
-                &mut self.player1
-            } else {
-                &mut self.player2
+            let current_player = match self.player_on_lead {
+                Players::Player1 =>  &mut self.player1,
+                Players::Player2 =>  &mut self.player2
             };
 
             current_player.twenties.push(suit);
@@ -191,10 +223,9 @@ impl Game {
             return Err(ErrorKind::GameOver);
         }
         
-        let current_player = if self.player1_next {
-            &self.player1
-        } else {
-            &self.player2
+        let current_player = match self.player_on_lead {
+            Players::Player1 =>  &self.player1,
+            Players::Player2 =>  &self.player2
         };
 
         let ober = Card::new(self.trump, Rank::Ober);
@@ -214,10 +245,9 @@ impl Game {
     pub fn call_forty(&mut self) -> Result<(), ErrorKind> {
         let can_call_forty = self.can_call_forty();
         if can_call_forty.is_ok() {
-            let current_player = if self.player1_next {
-                &mut self.player1
-            } else {
-                &mut self.player2
+            let current_player = match self.player_on_lead {
+                Players::Player1 =>  &mut self.player1,
+                Players::Player2 =>  &mut self.player2
             };
 
             current_player.forty = Some(self.trump);
@@ -235,10 +265,9 @@ impl Game {
             return false;
         }
         
-        let current_player = if self.player1_next {
-            &self.player1
-        } else {
-            &self.player2
+        let current_player = match self.player_on_lead {
+            Players::Player1 =>  &self.player1,
+            Players::Player2 =>  &self.player2
         };
 
         current_player.score() >= 66
@@ -252,126 +281,167 @@ impl Game {
 
         can_declare_win
     }
-    
-    pub fn next_player_name(&self) -> &str {
-        if self.player1_next {
-            &self.player1.name
-        } else {
-            &self.player2.name
-        }
-    }
 
-    pub fn next_turn_possible(&self,
-                              player1_card: Card,
-                              player2_card: Card) -> bool {
+    pub fn can_play_card(&self, player: Players, card: Card)
+                         -> Result<(), ErrorKind> {
         if self.is_game_over() {
-            return false;
+            return Err(ErrorKind::GameOver);
         }
         
-        if !self.player1.hand.contains(&player1_card)
-            || !self.player2.hand.contains(&player2_card) {
-            return false;
+        self.on_turn(player)?;
+        
+        if !self.get_player(player).hand.contains(&card) {
+            return Err(ErrorKind::NoSuchCardInHand(card));
         }
 
-        let is_endgame = self.closed || self.stock.is_empty();
-        if !is_endgame {
-            return true;
+        match self.first_card_in_trick {
+            // We are playing the first card.
+            None => Ok(()),
+
+            // We are playing the second card.
+            Some(first_card)
+                => self.can_play_card_as_2nd_player(first_card, player, card)
         }
-        
-        let ((first_hand, first_card), (second_hand, second_card))
-            = self.first_and_second_player(player1_card,
-                                           player2_card);
-        
-        legal_second_card_in_endgame(first_hand, first_card,
-                                     second_hand, second_card,
-                                     self.trump)
     }
 
-    pub fn next_turn(&mut self,
-                     player1_card: Card,
-                     player2_card: Card) -> bool {
-        if !self.next_turn_possible(player1_card, player2_card) {
-            return false;
+    pub fn play_card(&mut self, player: Players, card: Card)
+                     -> Result<(), ErrorKind> {
+        self.can_play_card(player, card)?;
+
+        self.remove_card_from_hand(player, card);
+
+        match self.first_card_in_trick {
+            // We are playing the first card in the trick.
+            None => self.first_card_in_trick = Some(card),
+
+            // We are playing the second card in the trick.
+            Some(card_on_lead) => {
+                let player_on_lead_wins
+                    = first_beats_second(card_on_lead, card, self.trump);
+
+                let winning_player_marker = if player_on_lead_wins
+                {
+                    self.player_on_lead
+                } else {
+                    player
+                };
+
+                self.add_cards_to_wins(winning_player_marker,
+                                       &[card_on_lead, card]);
+
+                self.deal_if_not_closed_or_empty(winning_player_marker);
+                self.player_on_lead = winning_player_marker;
+                self.first_card_in_trick = None;
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn can_play_card_as_2nd_player(&self, first_card: Card,
+                                   player: Players, card: Card)
+                                   -> Result<(), ErrorKind> {
+        let is_endgame = self.closed || self.stock.is_empty();
+        
+        if !is_endgame {
+            return Ok(());
         }
 
-        let player1_wins = self.player1_wins(player1_card, player2_card);
-        let (winning_player, winning_card, losing_player, losing_card);
-        if player1_wins {
-            winning_player = &mut self.player1;
-            winning_card = player1_card;
-            losing_player = &mut self.player2;
-            losing_card = player2_card;
+        let player_on_lead = self.get_player(self.player_on_lead());
+        let second_player = self.get_player(player);
+        
+        let legal_second_card = legal_second_card_in_endgame(
+            &player_on_lead.hand, first_card,
+            &second_player.hand, card,
+            self.trump);
+        
+        legal_second_card
+    }
+
+    fn get_player_mut(&mut self, player: Players) -> &mut Player {
+        match player {
+            Players::Player1 => &mut self.player1,
+            Players::Player2 => &mut self.player2
+        }
+    }
+
+    fn on_lead(&self, player: Players) -> Result<(), ErrorKind> {
+        if self.player_on_lead == player {
+            Ok(())
         } else {
-            winning_player = &mut self.player2;
-            winning_card = player2_card;
-            losing_player = &mut self.player1;
-            losing_card = player1_card;
+            Err(ErrorKind::PlayerNotOnLead)
         }
+    }
+    
+    fn on_turn(&self, player: Players) -> Result<(), ErrorKind> {
+        if self.player_on_lead == player {
+            match self.first_card_in_trick {
+                Some(_) => Err(ErrorKind::NotPlayersTurn),
+                None => Ok(())
+            }
+        } else {
+            match self.first_card_in_trick {
+                Some(_) => Ok(()),
+                None => Err(ErrorKind::NotPlayersTurn)
+            }
+        }
+    }
 
-        winning_player.wins.extend_from_slice(&[winning_card, losing_card]);
+    fn remove_card_from_hand(&mut self, player: Players, card: Card) {
+        let player = self.get_player_mut(player);
 
-        let winning_index = winning_player.hand.iter()
-            .position(|&card| card == winning_card).unwrap();
-        winning_player.hand.remove(winning_index);
+        let index_option = player.hand.iter().position(
+            |&card_in_hand| card_in_hand == card);
+        index_option.map(|index| player.hand.remove(index));
+    }
 
-        let losing_index = losing_player.hand.iter()
-            .position(|&card| card == losing_card).unwrap();
-        losing_player.hand.remove(losing_index);
+    fn add_cards_to_wins(&mut self, player: Players, cards: &[Card]) {
+        let player_wins = &mut self.get_player_mut(player).wins;
+        player_wins.extend_from_slice(cards);
+    }
 
-        if !self.closed {
+    fn deal_if_not_closed_or_empty(&mut self, winner_of_trick: Players) {
+        if !self.closed {            
             if let Some(card) = self.stock.pop() {
+                let winning_player = self.get_player_mut(winner_of_trick);
                 winning_player.hand.push(card);
             };
 
             if let Some(card) = self.stock.pop() {
+                let losing_player
+                    = self.get_player_mut(winner_of_trick.other());
                 losing_player.hand.push(card);
             };
-        }
-
-        self.player1_next = player1_wins;        
-        true
-    }
-
-    fn first_and_second_player(&self,
-                               player1_card: Card,
-                               player2_card: Card)
-                               -> ((&[Card], Card), (&[Card], Card)) {
-        let player1_tuple = (self.player1.hand.as_slice(), player1_card);
-        let player2_tuple = (self.player2.hand.as_slice(), player2_card);
-        if self.player1_next {
-            (player1_tuple, player2_tuple)
-        } else {
-            (player2_tuple, player1_tuple)
-        }
-    }
-
-    fn player1_wins(&self, player1_card: Card, player2_card: Card) -> bool {
-        if self.player1_next {
-            first_beats_second(player1_card, player2_card, self.trump)
-        } else {
-            !first_beats_second(player2_card, player1_card, self.trump)
         }
     }
 }
 
 fn legal_second_card_in_endgame(_hand1: &[Card], card1: Card,
                                 hand2: &[Card], card2: Card,
-                                trump: Suit) -> bool {
+                                trump: Suit) -> Result<(), ErrorKind> {
     if card1.suit() == card2.suit() {
         if value(card1) < value(card2) {
-            true
+            Ok(())
         } else {
-            !hand2.iter().any(|&other_card| other_card.suit() == card1.suit()
-                              && value(card1) < value(other_card))
+            let better_card_position = hand2.iter()
+                .position(|&other_card| other_card.suit() == card1.suit()
+                          && value(card1) < value(other_card));
+            
+            match better_card_position {
+                None => Ok(()),
+                Some(index) =>Err(ErrorKind::MustTake(hand2[index]))
+            }
         }
     } else {
         if hand2.iter().any(|&other_card| other_card.suit() == card1.suit()) {
-            false
+            Err(ErrorKind::MustUseAnotherSuit(card1.suit()))
         } else if card2.suit() == trump {
-            true
+            Ok(())
+        } else if hand2.iter().any(|&other_card| other_card.suit() == trump) {
+            Err(ErrorKind::MustUseTrump)
         } else {
-            !hand2.iter().any(|&other_card| other_card.suit() == trump)
-        }
+            Ok(())
+        }   
     }
     
 }

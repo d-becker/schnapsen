@@ -17,8 +17,11 @@ pub enum ErrorKind {
     AlreadyCalledThisTwenty(Suit),
     TwentyWithTrumpSuit,
     AlreadyCalledForty,
-    
-    GENERIC_ERROR,
+    PlayerNotOnLead,
+    NotPlayersTurn,
+    MustUseAnotherSuit(Suit),
+    MustTake(Card),
+    MustUseTrump,
 }
 
 pub fn value(card: Card) -> u32 {
