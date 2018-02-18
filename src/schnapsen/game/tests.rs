@@ -124,7 +124,41 @@ fn test_close_not_enough_cards_left() {
 
 #[test]
 fn test_exchange_trump_not_on_lead() {
-    assert!(false);
+    let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
+                      Card{suit: Suit::Hearts, rank: Rank::King},
+                      Card{suit: Suit::Hearts, rank: Rank::Ten},
+                      Card{suit: Suit::Hearts, rank: Rank::Ace}];
+        
+    let player1_hand = vec![Card{suit: Suit::Acorns, rank: Rank::Unter},
+                            Card{suit: Suit::Acorns, rank: Rank::Ober},
+                            Card{suit: Suit::Acorns, rank: Rank::King},
+                            Card{suit: Suit::Acorns, rank: Rank::Ten},
+                            Card{suit: Suit::Acorns, rank: Rank::Ace}];
+
+    let player2_hand = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
+                            Card{suit: Suit::Bells, rank: Rank::Ober},
+                            Card{suit: Suit::Bells, rank: Rank::King},
+                            Card{suit: Suit::Bells, rank: Rank::Ten},
+                            Card{suit: Suit::Bells, rank: Rank::Ace}];
+
+    let card1 = player1_hand[0];
+    
+    let trump_card = stock[0];
+    let trump = trump_card.suit();
+
+    let player1 = Player {hand: player1_hand, ..Default::default()};
+    let player2 = Player {hand: player2_hand, ..Default::default()};
+
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+
+    let first_card_result = game.play_card(card1);
+    assert!(first_card_result.is_ok());
+
+    let expected_error = Err(ErrorKind::PlayerNotOnLead);
+    assert_eq!(expected_error, game.can_exchange_trump());
+
+    let result = game.exchange_trump();
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -280,7 +314,38 @@ fn test_exchange_trump_ok() {
 
 #[test]
 fn test_call_twenty_not_on_lead() {
-    assert!(false);
+    let stock = Vec::new();
+
+    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ober),
+                     Card::new(Suit::Leaves, Rank::Unter),
+                     Card::new(Suit::Bells, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Unter),
+                     Card::new(Suit::Hearts, Rank::Ten)];
+
+    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ace),
+                     Card::new(Suit::Leaves, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
+                     Card::new(Suit::Hearts, Rank::Ace)];
+
+    let card1 = hand1[0];
+
+    let player1 = Player {hand: hand1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+    
+    let mut game = Game {stock, player1, player2,
+                         trump: Suit::Hearts, ..Default::default()};
+    
+    let first_card_result = game.play_card(card1);
+    assert!(first_card_result.is_ok());
+
+    let expected_error = Err(ErrorKind::PlayerNotOnLead);
+    
+    let twenty_suit = Suit::Bells;
+    assert_eq!(expected_error, game.can_call_twenty(twenty_suit));
+
+    let result = game.call_twenty(twenty_suit);
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -400,7 +465,8 @@ fn test_call_twenty_ok() {
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
     
-    let mut game = Game {stock, player1, player2, ..Default::default()};
+    let mut game = Game {stock, player1, player2,
+                         trump: Suit::Hearts, ..Default::default()};
     
     let twenty_suit = Suit::Bells;
     assert!(game.can_call_twenty(twenty_suit).is_ok());
@@ -413,7 +479,37 @@ fn test_call_twenty_ok() {
 
 #[test]
 fn test_call_forty_not_on_lead() {
-    assert!(false);
+    let stock = Vec::new();
+
+    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ober),
+                     Card::new(Suit::Leaves, Rank::Unter),
+                     Card::new(Suit::Bells, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Unter),
+                     Card::new(Suit::Hearts, Rank::Ten)];
+
+    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ace),
+                     Card::new(Suit::Leaves, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
+                     Card::new(Suit::Hearts, Rank::Ace)];
+
+    let card1 = hand1[0];
+
+    let player1 = Player {hand: hand1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Bells;
+    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+
+    let first_card_result = game.play_card(card1);
+    assert!(first_card_result.is_ok());
+
+    let expected_error = Err(ErrorKind::PlayerNotOnLead);
+    
+    assert_eq!(expected_error, game.can_call_forty());
+
+    let result = game.call_forty();
+    assert_eq!(expected_error, result);
 }
 
 #[test]
@@ -509,7 +605,34 @@ fn test_call_forty_ok() {
 
 #[test]
 fn test_declare_win_not_on_lead() {
-    assert!(false);
+    let stock = Vec::new();
+
+    let hand1 = vec![Card::new(Suit::Bells, Rank::King)];
+    let hand2 = vec![Card::new(Suit::Hearts, Rank::King)];
+
+    let card1 = hand1[0];
+    
+    let player2_wins = vec![Card::new(Suit::Leaves, Rank::Ace),
+                            Card::new(Suit::Leaves, Rank::Ten),
+                            Card::new(Suit::Bells, Rank::Ace),
+                            Card::new(Suit::Bells, Rank::Ten),
+                            Card::new(Suit::Hearts, Rank::Ace),
+                            Card::new(Suit::Hearts, Rank::Ten),
+                            Card::new(Suit::Leaves, Rank::King),
+                            Card::new(Suit::Leaves, Rank::Ober)];
+    
+    let player1 = Player {hand: hand1, ..Default::default()};
+    let player2 = Player {hand: hand2, wins: player2_wins,
+                          ..Default::default()};
+    let mut game = Game {stock, player1, player2, ..Default::default()};
+
+    let first_card_result = game.play_card(card1);
+    assert!(first_card_result.is_ok());
+    let expected_error = Err(ErrorKind::PlayerNotOnLead);
+    assert_eq!(expected_error, game.can_declare_win());
+
+    let result = game.declare_win();
+    assert_eq!(expected_error, result);
 }
 
 #[test]

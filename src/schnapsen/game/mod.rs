@@ -362,20 +362,6 @@ impl Game {
             Err(ErrorKind::PlayerNotOnLead)
         }
     }
-    
-    fn on_turn(&self, player: Players) -> Result<(), ErrorKind> {
-        if self.player_on_lead == player {
-            match self.first_card_in_trick {
-                Some(_) => Err(ErrorKind::NotPlayersTurn),
-                None => Ok(())
-            }
-        } else {
-            match self.first_card_in_trick {
-                Some(_) => Ok(()),
-                None => Err(ErrorKind::NotPlayersTurn)
-            }
-        }
-    }
 
     fn remove_card_from_hand(&mut self, player: Players, card: Card) {
         let player = self.get_player_mut(player);
