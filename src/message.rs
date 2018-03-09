@@ -1,5 +1,5 @@
-use cards::{Card, Suit};
-use schnapsen;
+use schnapsen_core::cards::{Card, Suit};
+use schnapsen_core::schnapsen;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum RequestData {
