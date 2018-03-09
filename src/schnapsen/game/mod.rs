@@ -3,19 +3,19 @@ use rand::Rng;
 
 use cards::{Card, Suit, Rank};
 use schnapsen::{ErrorKind, Players, player::Player};
-use schnapsen::{generate_deck, first_beats_second, value};
+use schnapsen::{generate_deck, first_beats_second};
+
+mod game_data;
+
+pub use self::game_data::{PlayerGameData, PublicGameData};
 
 #[derive(Debug)]
 pub struct Game {
     stock: Vec<Card>,
-    trump: Suit,
-    closed: bool,
-    winner: Option<Players>,
-
     player1: Player,
     player2: Player,
-    player_on_lead: Players,
-    first_card_in_trick: Option<Card>
+    
+    public_data: PublicGameData
 }
 
 impl Default for Game {
@@ -36,16 +36,15 @@ impl Game {
         let stock = deck;
         let trump = stock[0].suit();
 
+        let public_data = PublicGameData {trump, closed: false, winner: None,
+                                          player_on_lead: Players::Player1,
+                                          first_card_in_trick: None};
         Game {stock,
-              trump,
-              closed: false,
-              winner: None,
               player1: Player {name: "Player1".to_string(),
                                hand: hand1, ..Default::default()},
               player2: Player {name: "Player2".to_string(),
                                hand: hand2, ..Default::default()},
-              player_on_lead: Players::Player1,
-              first_card_in_trick: None
+              public_data
         }
     }
     
@@ -73,18 +72,19 @@ impl Game {
     }
 
     pub fn player_on_lead(&self) -> Players {
-        self.player_on_lead
+        self.public_data.player_on_lead
     }
     
     pub fn player_on_turn(&self) -> Players {
-        match self.first_card_in_trick {
-            Some(_) => self.player_on_lead.other(),
-            None => self.player_on_lead
-        }
+        self.public_data.player_on_turn()
+    }
+
+    pub fn trump(&self) -> Suit {
+        self.public_data.trump
     }
     
     pub fn trump_card(&self) -> Option<Card> {
-        if self.closed {
+        if self.is_closed() {
             None
         } else {
             self.stock.first().map(|&card| card)
@@ -92,209 +92,97 @@ impl Game {
     }
 
     pub fn is_closed(&self) -> bool {
-        self.closed
+        self.public_data.closed
     }
 
     pub fn can_close(&self) -> Result<(), ErrorKind> {
         let player_on_turn = self.player_on_turn();
-        self.on_lead(player_on_turn)?;
-        
-        if self.is_game_over() {
-            Err(ErrorKind::GameOver)
-        } else if self.is_closed() {
-            Err(ErrorKind::DeckClosed)
-        } else if self.stock.len() <= 2 {
-            Err(ErrorKind::NotEnoughCardsInStock)
-        } else {
-            Ok(())
-        }
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_close()
     }
     
     pub fn close(&mut self) -> Result<(), ErrorKind> {
-        let can_close = self.can_close();
+        let player_on_turn = self.player_on_turn();
+        let mut data_as_player_mut
+            = self.get_data_as_player_mut(player_on_turn);
+        data_as_player_mut.close() 
+    }
 
-        if can_close.is_ok() {
-            self.closed = true;
-        }
-        
-        can_close
+    pub fn is_game_over(&self) -> bool {
+        self.public_data.is_game_over()
+    }
+
+    pub fn winner(&self) -> Option<Players> {
+        self.public_data.winner
     }
 
     pub fn can_exchange_trump(&self) -> Result<(), ErrorKind> {
         let player_on_turn = self.player_on_turn();
-        self.on_lead(player_on_turn)?;
-        
-        if self.is_game_over() {
-            Err(ErrorKind::GameOver)
-        } else if self.is_closed() {
-            Err(ErrorKind::DeckClosed)
-        } else if self.stock.len() <= 2 {
-            Err(ErrorKind::NotEnoughCardsInStock)
-        } else {
-            let current_player = self.get_player(player_on_turn);
-        
-            let trump_unter = Card::new(self.trump, Rank::Unter);
-            if current_player.hand.contains(&trump_unter) {
-                Ok(())
-            } else {
-                Err(ErrorKind::NoSuchCardInHand(trump_unter))
-            }
-        }
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_exchange_trump()
     }
 
     pub fn exchange_trump(&mut self) -> Result<(), ErrorKind> {
-        let can_exchange_trump = self.can_exchange_trump();
-        if can_exchange_trump.is_ok() {
-            let trump = self.trump;
-            let trump_card = self.trump_card().unwrap();
-            
-            {
-                let player_on_turn = self.player_on_turn();
-                let current_player = self.get_player_mut(player_on_turn);
-                
-                let index = current_player.hand.iter()
-                    .position(|&card| card == Card::new(trump, Rank::Unter))
-                    .unwrap();
-                current_player.hand[index] = trump_card;
-            }
-            
+        let res = {
+            let player_on_turn = self.player_on_turn();
+            let mut data_as_player_mut
+                = self.get_data_as_player_mut(player_on_turn);
+
+            data_as_player_mut.exchange_trump()
+        };
+
+        if res.is_ok() {
+            let trump = self.public_data.trump;
             self.stock[0] = Card::new(trump, Rank::Unter);
         }
 
-        can_exchange_trump
+        res
     }
 
     pub fn can_call_twenty(&self, suit: Suit) -> Result<(), ErrorKind> {
         let player_on_turn = self.player_on_turn();
-        self.on_lead(player_on_turn)?;
-        
-        if self.is_game_over() {
-            return Err(ErrorKind::GameOver);
-        }
-        
-        let current_player = self.get_player(player_on_turn);
-
-        let ober = Card::new(suit, Rank::Ober);
-        let king = Card::new(suit, Rank::King);
-        
-        if !current_player.hand.contains(&ober) {
-            Err(ErrorKind::NoSuchCardInHand(ober))
-        } else if !current_player.hand.contains(&king) {
-            Err(ErrorKind::NoSuchCardInHand(king))
-        } else if current_player.twenties.contains(&suit) {
-            Err(ErrorKind::AlreadyCalledThisTwenty(suit))
-        } else if suit == self.trump {
-            Err(ErrorKind::TwentyWithTrumpSuit)
-        } else {
-            Ok(())
-        }
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_call_twenty(suit)
     }
 
     pub fn call_twenty(&mut self, suit: Suit) -> Result<(), ErrorKind> {
-        let can_call_twenty = self.can_call_twenty(suit);
-
-        if can_call_twenty.is_ok() {
-            let player_on_turn = self.player_on_turn();
-            let current_player = self.get_player_mut(player_on_turn);
-
-            current_player.twenties.push(suit);
-        }
-        
-        can_call_twenty
+        let player_on_turn = self.player_on_turn();
+        let mut data_as_player_mut
+            = self.get_data_as_player_mut(player_on_turn);
+        data_as_player_mut.call_twenty(suit)
     }
 
     pub fn can_call_forty(&self) -> Result<(), ErrorKind> {
         let player_on_turn = self.player_on_turn();
-        self.on_lead(player_on_turn)?;
-        
-        if self.is_game_over() {
-            return Err(ErrorKind::GameOver);
-        }
-        
-        let current_player = self.get_player(player_on_turn);
-
-        let ober = Card::new(self.trump, Rank::Ober);
-        let king = Card::new(self.trump, Rank::King);
-        
-        if !current_player.hand.contains(&ober) {
-            Err(ErrorKind::NoSuchCardInHand(ober))
-        } else if !current_player.hand.contains(&king) {
-            Err(ErrorKind::NoSuchCardInHand(king))
-        } else if current_player.forty.is_some() {
-            Err(ErrorKind::AlreadyCalledForty)
-        } else {
-            Ok(())
-        }
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_call_forty()
     }
 
     pub fn call_forty(&mut self) -> Result<(), ErrorKind> {
-        let can_call_forty = self.can_call_forty();
-        if can_call_forty.is_ok() {
-            let trump = self.trump;
-            let player_on_turn = self.player_on_turn();
-            let current_player = self.get_player_mut(player_on_turn);
-
-            current_player.forty = Some(trump);
-        }
-
-        can_call_forty
-    }
-
-    pub fn is_game_over(&self) -> bool {
-        self.winner.is_some()
-    }
-
-    pub fn winner(&self) -> Option<Players> {
-        self.winner
+        let player_on_turn = self.player_on_turn();
+        let mut data_as_player_mut
+            = self.get_data_as_player_mut(player_on_turn);
+        data_as_player_mut.call_forty()
     }
 
     pub fn can_declare_win(&self) -> Result<(), ErrorKind> {
         let player_on_turn = self.player_on_turn();
-        self.on_lead(player_on_turn)?;
-        
-        if self.is_game_over() {
-            return Err(ErrorKind::GameOver);
-        }
-        
-        let current_player = self.get_player(player_on_turn);
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_declare_win()
 
-        let player_score = current_player.score();
-        
-        if player_score < 66 {
-            Err(ErrorKind::ScoreTooLow(player_score))
-        } else {
-            Ok(())
-        }
     }
     
     pub fn declare_win(&mut self) -> Result<(), ErrorKind> {
-        let can_declare_win = self.can_declare_win();
-        if can_declare_win.is_ok() {
-            self.winner = Some(self.player_on_turn());
-        }
-
-        can_declare_win
+        let player_on_turn = self.player_on_turn();
+        let mut data_as_player_mut
+            = self.get_data_as_player_mut(player_on_turn);
+        data_as_player_mut.declare_win()
     }
 
     pub fn can_play_card(&self, card: Card) -> Result<(), ErrorKind> {
-        if self.is_game_over() {
-            return Err(ErrorKind::GameOver);
-        }
-        
         let player_on_turn = self.player_on_turn();
-        
-        if !self.get_player(player_on_turn).hand.contains(&card) {
-            return Err(ErrorKind::NoSuchCardInHand(card));
-        }
-
-        match self.first_card_in_trick {
-            // We are playing the first card.
-            None => Ok(()),
-
-            // We are playing the second card.
-            Some(first_card) => self.can_play_card_as_2nd_player(
-                first_card, player_on_turn, card)
-        }
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_play_card(card)
     }
 
     pub fn play_card(&mut self, card: Card) -> Result<(), ErrorKind> {
@@ -304,18 +192,19 @@ impl Game {
 
         self.remove_card_from_hand(player_on_turn, card);
 
-        match self.first_card_in_trick {
+        match self.public_data.first_card_in_trick {
             // We are playing the first card in the trick.
-            None => self.first_card_in_trick = Some(card),
+            None => self.public_data.first_card_in_trick = Some(card),
 
             // We are playing the second card in the trick.
             Some(card_on_lead) => {
                 let player_on_lead_wins
-                    = first_beats_second(card_on_lead, card, self.trump);
+                    = first_beats_second(card_on_lead, card,
+                                         self.public_data.trump);
 
                 let winning_player_marker = if player_on_lead_wins
                 {
-                    self.player_on_lead
+                    self.player_on_lead()
                 } else {
                     player_on_turn
                 };
@@ -324,36 +213,19 @@ impl Game {
                                        &[card_on_lead, card]);
 
                 self.deal_if_not_closed_or_empty(winning_player_marker);
-                self.player_on_lead = winning_player_marker;
-                self.first_card_in_trick = None;
+                self.public_data.player_on_lead = winning_player_marker;
+                self.public_data.first_card_in_trick = None;
 
-                if self.stock.is_empty() {
-                    self.winner = Some(winning_player_marker);
+                // Actually the players should always have
+                // the same number of cards in their hands.
+                if self.player1.hand.is_empty()
+                    || self.player2.hand.is_empty() {
+                    self.public_data.winner = Some(winning_player_marker);
                 }
             }
         }
         
         Ok(())
-    }
-
-    fn can_play_card_as_2nd_player(&self, first_card: Card,
-                                   player: Players, card: Card)
-                                   -> Result<(), ErrorKind> {
-        let is_endgame = self.closed || self.stock.is_empty();
-        
-        if !is_endgame {
-            return Ok(());
-        }
-
-        let player_on_lead = self.get_player(self.player_on_lead());
-        let second_player = self.get_player(player);
-        
-        let legal_second_card = legal_second_card_in_endgame(
-            &player_on_lead.hand, first_card,
-            &second_player.hand, card,
-            self.trump);
-        
-        legal_second_card
     }
 
     fn get_player_mut(&mut self, player: Players) -> &mut Player {
@@ -363,12 +235,29 @@ impl Game {
         }
     }
 
-    fn on_lead(&self, player: Players) -> Result<(), ErrorKind> {
-        if self.player_on_lead == player {
-            Ok(())
-        } else {
-            Err(ErrorKind::PlayerNotOnLead)
-        }
+    fn get_data_as_player(&self, player_id: Players)
+                          -> PlayerGameData<&Player, &PublicGameData> {
+        let player = self.get_player(player_id);
+        let stock_size = self.stock.len() as u32;
+        let trump_card_rank = self.trump_card().map(|card| card.rank());
+        let public_data = &self.public_data;
+        PlayerGameData {player_id, player, stock_size,
+                        trump_card_rank, public_data}
+    }
+
+    fn get_data_as_player_mut(&mut self, player_id: Players)
+                              -> PlayerGameData<&mut Player, &mut PublicGameData>
+    {
+        let stock_size = self.stock.len() as u32;
+        let trump_card_rank = self.trump_card().map(|card| card.rank());
+        let public_data = &mut self.public_data;
+        let player = match player_id {
+            Players::Player1 => &mut self.player1,
+            Players::Player2 => &mut self.player2
+        };
+        
+        PlayerGameData {player_id, player, stock_size,
+                        trump_card_rank, public_data}
     }
 
     fn remove_card_from_hand(&mut self, player: Players, card: Card) {
@@ -385,7 +274,7 @@ impl Game {
     }
 
     fn deal_if_not_closed_or_empty(&mut self, winner_of_trick: Players) {
-        if !self.closed {            
+        if !self.is_closed() {            
             if let Some(card) = self.stock.pop() {
                 let winning_player = self.get_player_mut(winner_of_trick);
                 winning_player.hand.push(card);
@@ -398,36 +287,6 @@ impl Game {
             };
         }
     }
-}
-
-fn legal_second_card_in_endgame(_hand1: &[Card], card1: Card,
-                                hand2: &[Card], card2: Card,
-                                trump: Suit) -> Result<(), ErrorKind> {
-    if card1.suit() == card2.suit() {
-        if value(card1) < value(card2) {
-            Ok(())
-        } else {
-            let better_card_position = hand2.iter()
-                .position(|&other_card| other_card.suit() == card1.suit()
-                          && value(card1) < value(other_card));
-            
-            match better_card_position {
-                None => Ok(()),
-                Some(index) =>Err(ErrorKind::MustTake(hand2[index]))
-            }
-        }
-    } else {
-        if hand2.iter().any(|&other_card| other_card.suit() == card1.suit()) {
-            Err(ErrorKind::MustUseAnotherSuit(card1.suit()))
-        } else if card2.suit() == trump {
-            Ok(())
-        } else if hand2.iter().any(|&other_card| other_card.suit() == trump) {
-            Err(ErrorKind::MustUseTrump)
-        } else {
-            Ok(())
-        }   
-    }
-    
 }
 
 #[cfg(test)]

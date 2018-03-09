@@ -10,7 +10,7 @@ pub use self::game::Game;
 pub use self::game_adapter::GameAdapter;
 pub use self::player::Player;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ErrorKind {
     GameOver,
     DeckClosed,
@@ -27,7 +27,7 @@ pub enum ErrorKind {
     ScoreTooLow(u32)
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Players {
     Player1,
     Player2

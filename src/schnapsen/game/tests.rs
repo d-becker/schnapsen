@@ -8,7 +8,7 @@ fn test_new_random_game() {
     assert_eq!(5, game.player1.hand.len());
     assert_eq!(5, game.player2.hand.len());
 
-    assert_eq!(game.stock[0].suit(), game.trump);
+    assert_eq!(game.stock[0].suit(), game.trump());
 }
 
 #[test]
@@ -20,7 +20,8 @@ fn test_trump_card_available() {
 
 #[test]
 fn test_trump_card_closed() {
-    let game = Game {closed: true, ..Default::default()};
+    let public_data = PublicGameData {closed: true, ..Default::default()};
+    let game = Game {public_data, ..Default::default()};
 
     assert_eq!(None, game.trump_card());
 }
@@ -72,7 +73,9 @@ fn test_close_not_on_lead() {
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
 
     let card1 = game.player1.hand[0];
 
@@ -105,10 +108,12 @@ fn test_close_already_closed() {
 
 #[test]
 fn test_close_not_enough_cards_left() {
+    let public_data = PublicGameData {trump: Suit::Leaves,
+                                      ..Default::default()};
     let mut game = Game {
         stock: vec![Card::new(Suit::Leaves, Rank::Ace),
                    Card::new(Suit::Leaves, Rank::Ten)],
-        trump: Suit::Leaves,
+        public_data,
         ..Default::default()
     };
 
@@ -149,7 +154,8 @@ fn test_exchange_trump_not_on_lead() {
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2, ..Default::default()};
 
     let first_card_result = game.play_card(card1);
     assert!(first_card_result.is_ok());
@@ -186,7 +192,9 @@ fn test_exchange_trump_not_having_trump_unter() {
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
     
     let trump_unter = Card::new(trump, Rank::Unter);
 
@@ -222,7 +230,9 @@ fn test_exchange_trump_not_enough_cards_in_stock() {
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
 
     let expected_error = Err(ErrorKind::NotEnoughCardsInStock);
     
@@ -259,7 +269,9 @@ fn test_exchange_trump_closed() {
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
 
     let close_result = game.close();
     assert!(close_result.is_ok());
@@ -301,7 +313,9 @@ fn test_exchange_trump_ok() {
     let player1 = Player {hand: player1_hand, ..Default::default()};
     let player2 = Player {hand: player2_hand, ..Default::default()};
 
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
 
     assert!(game.can_exchange_trump().is_ok());
 
@@ -332,9 +346,11 @@ fn test_call_twenty_not_on_lead() {
 
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
-    
-    let mut game = Game {stock, player1, player2,
-                         trump: Suit::Hearts, ..Default::default()};
+
+    let trump = Suit::Hearts;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
     
     let first_card_result = game.play_card(card1);
     assert!(first_card_result.is_ok());
@@ -365,9 +381,11 @@ fn test_call_twenty_no_such_cards() {
 
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
-    
-    let mut game = Game {stock, trump: Suit::Hearts,
-                         player1, player2, ..Default::default()};
+
+    let trump = Suit::Hearts;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
     
     let expected_error = Err(ErrorKind::NoSuchCardInHand(
         Card::new(Suit::Bells, Rank::Ober)));
@@ -395,9 +413,11 @@ fn test_call_twenty_already_called_the_same() {
 
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
-    
-    let mut game = Game {stock, trump: Suit::Hearts,
-                         player1, player2, ..Default::default()};
+
+    let trump = Suit::Hearts;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
     
     let twenty_suit = Suit::Bells;
     
@@ -433,9 +453,10 @@ fn test_call_twenty_suit_is_trump() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let twenty_suit = Suit::Bells;
-    
-    let mut game = Game {stock, trump: twenty_suit, player1,
-                         player2, ..Default::default()};
+
+    let public_data = PublicGameData {trump: twenty_suit, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
     
     let expected_error = Err(ErrorKind::TwentyWithTrumpSuit);
 
@@ -464,9 +485,11 @@ fn test_call_twenty_ok() {
 
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
-    
-    let mut game = Game {stock, player1, player2,
-                         trump: Suit::Hearts, ..Default::default()};
+
+    let trump = Suit::Hearts;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
     
     let twenty_suit = Suit::Bells;
     assert!(game.can_call_twenty(twenty_suit).is_ok());
@@ -499,7 +522,9 @@ fn test_call_forty_not_on_lead() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
 
     let first_card_result = game.play_card(card1);
     assert!(first_card_result.is_ok());
@@ -531,7 +556,9 @@ fn test_call_forty_no_such_cards() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
     
     let expected_error = Err(ErrorKind::NoSuchCardInHand(
         Card::new(trump, Rank::Ober)));
@@ -561,7 +588,9 @@ fn test_call_forty_already_called_the_same() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
     
     let forty_result = game.call_forty();
     assert!(forty_result.is_ok());
@@ -593,7 +622,9 @@ fn test_call_forty_ok() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
 
     assert!(game.can_call_forty().is_ok());
 
@@ -769,7 +800,7 @@ pub fn test_play_card_player1_card_ok() {
     let result = game.play_card(card);
     assert!(result.is_ok());
 
-    assert_eq!(Some(card), game.first_card_in_trick);
+    assert_eq!(Some(card), game.public_data.first_card_in_trick);
     assert!(!game.player1.hand.contains(&card));
     assert_eq!(player1_marker.other(), game.player_on_turn());
 }
@@ -805,8 +836,9 @@ fn test_play_card_illegal_suit() {
     let player2 = Player {name: "Player2".to_string(), hand: player2_hand,
                           ..Default::default()};
 
+    let public_data = PublicGameData {trump, ..Default::default()};
     let mut game = Game {
-        stock, trump, player1, player2, ..Default::default()
+        stock, public_data, player1, player2, ..Default::default()
     };
     
     let closing_successful = game.close();
@@ -852,8 +884,9 @@ fn test_play_card_stock_depleted_must_be_higher() {
     let player2 = Player {name: "Player2".to_string(), hand: player2_hand,
                           ..Default::default()};
 
+    let public_data = PublicGameData {trump, ..Default::default()};
     let mut game = Game {
-        stock, trump, player1, player2, ..Default::default()
+        stock, public_data, player1, player2, ..Default::default()
     };
     
     let first_card_result = game.play_card(card1);
@@ -892,8 +925,9 @@ fn test_play_card_stock_depleted_must_use_trump() {
     let player2 = Player {name: "Player2".to_string(), hand: player2_hand,
                           ..Default::default()};
 
+    let public_data = PublicGameData {trump, ..Default::default()};
     let mut game = Game {
-        stock, trump, player1, player2, ..Default::default()
+        stock, public_data, player1, player2, ..Default::default()
     };
 
     let first_card_result = game.play_card(card1);
@@ -956,9 +990,10 @@ fn test_play_card_player2_card_ok_template(should_be_closed: bool) {
                           ..Default::default()};
     let player2 = Player {name: "Player2".to_string(), hand: player2_hand,
                           ..Default::default()};
-    
+
+    let public_data = PublicGameData {trump, ..Default::default()};
     let mut game = Game {
-        stock, trump, player1, player2, ..Default::default()
+        stock, public_data, player1, player2, ..Default::default()
     };
 
     let player1_marker = game.player_on_turn();
@@ -998,7 +1033,40 @@ fn test_play_card_player2_card_ok_template(should_be_closed: bool) {
 }
 
 #[test]
-fn play_last_cards_game_over() {
+fn test_play_not_last_cards_stock_depleted_no_game_over() {
+    let stock = Vec::new();
+
+    let card1 = Card::new(Suit::Leaves, Rank::Ten);
+    let card2 = Card::new(Suit::Leaves, Rank::Ace);
+    
+    let hand1 = vec![card1, Card::new(Suit::Leaves, Rank::Ober)];
+    let hand2 = vec![card2, Card::new(Suit::Leaves, Rank::King)];
+
+    let player1 = Player {hand: hand1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Leaves;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
+
+    let player1_marker = game.player_on_turn();
+    let player2_marker = player1_marker.other();
+
+    let first_card_result = game.play_card(card1);
+    assert!(first_card_result.is_ok());
+
+    assert_eq!(player2_marker, game.player_on_turn());
+
+    let second_card_result = game.play_card(card2);
+    assert!(second_card_result.is_ok());
+
+    assert!(!game.is_game_over());
+    assert_eq!(None, game.winner());
+}
+
+#[test]
+fn test_play_last_cards_game_over() {
     let stock = Vec::new();
 
     let card1 = Card::new(Suit::Leaves, Rank::Ten);
@@ -1011,8 +1079,9 @@ fn play_last_cards_game_over() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Leaves;
-
-    let mut game = Game {stock, trump, player1, player2, ..Default::default()};
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
 
     let player1_marker = game.player_on_turn();
     let player2_marker = player1_marker.other();
@@ -1026,5 +1095,5 @@ fn play_last_cards_game_over() {
     assert!(second_card_result.is_ok());
 
     assert!(game.is_game_over());
-    assert_eq!(Some(player2_marker), game.winner);
+    assert_eq!(Some(player2_marker), game.winner());
 }

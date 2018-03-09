@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Suit {
     Hearts,
     Bells,
@@ -6,7 +6,7 @@ pub enum Suit {
     Leaves
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Rank {
     Seven,
     Eight,
@@ -18,7 +18,7 @@ pub enum Rank {
     Ace
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Card {
     pub suit: Suit,
     pub rank: Rank
