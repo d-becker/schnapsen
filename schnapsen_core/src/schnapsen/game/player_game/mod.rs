@@ -6,7 +6,7 @@ use schnapsen::{first_beats_second, value};
 use schnapsen::game::game_data::PublicGameData;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct PlayerGameData<P, D>
+pub struct PlayerGame<P, D>
     where P: Borrow<Player>,
           D: Borrow<PublicGameData>
 {
@@ -17,7 +17,7 @@ pub struct PlayerGameData<P, D>
     pub public_data: D
 }
 
-impl<P, D> PlayerGameData<P, D>
+impl<P, D> PlayerGame<P, D>
     where P: Borrow<Player>,
           D: Borrow<PublicGameData>
 {
@@ -198,7 +198,7 @@ impl<P, D> PlayerGameData<P, D>
     }
 }
 
-impl<P, D> PlayerGameData<P, D>
+impl<P, D> PlayerGame<P, D>
     where P: BorrowMut<Player>,
           D: BorrowMut<PublicGameData>
 {

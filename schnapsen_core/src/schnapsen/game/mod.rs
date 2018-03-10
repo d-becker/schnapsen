@@ -9,7 +9,7 @@ mod game_data;
 mod player_game;
 
 pub use self::game_data::PublicGameData;
-pub use self::player_game::PlayerGameData;
+pub use self::player_game::PlayerGame;
 
 #[derive(Debug)]
 pub struct Game {
@@ -238,17 +238,17 @@ impl Game {
     }
 
     fn get_data_as_player(&self, player_id: Players)
-                          -> PlayerGameData<&Player, &PublicGameData> {
+                          -> PlayerGame<&Player, &PublicGameData> {
         let player = self.get_player(player_id);
         let stock_size = self.stock.len() as u32;
         let trump_card_rank = self.trump_card().map(|card| card.rank());
         let public_data = &self.public_data;
-        PlayerGameData {player_id, player, stock_size,
+        PlayerGame {player_id, player, stock_size,
                         trump_card_rank, public_data}
     }
 
     fn get_data_as_player_mut(&mut self, player_id: Players)
-                              -> PlayerGameData<&mut Player, &mut PublicGameData>
+                              -> PlayerGame<&mut Player, &mut PublicGameData>
     {
         let stock_size = self.stock.len() as u32;
         let trump_card_rank = self.trump_card().map(|card| card.rank());
@@ -258,7 +258,7 @@ impl Game {
             Players::Player2 => &mut self.player2
         };
         
-        PlayerGameData {player_id, player, stock_size,
+        PlayerGame {player_id, player, stock_size,
                         trump_card_rank, public_data}
     }
 
