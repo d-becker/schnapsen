@@ -6,8 +6,10 @@ use schnapsen::{ErrorKind, Players, player::Player};
 use schnapsen::{generate_deck, first_beats_second};
 
 mod game_data;
+mod player_game;
 
-pub use self::game_data::{PlayerGameData, PublicGameData};
+pub use self::game_data::PublicGameData;
+pub use self::player_game::PlayerGameData;
 
 #[derive(Debug)]
 pub struct Game {
