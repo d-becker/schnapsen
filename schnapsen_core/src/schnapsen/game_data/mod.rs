@@ -12,9 +12,11 @@ pub struct PublicGameData {
 
 impl Default for PublicGameData {
     fn default() -> PublicGameData {
-        PublicGameData {trump: Suit::Hearts, closed: false,
-                        winner: None, player_on_lead: Players::Player1,
-                        first_card_in_trick: None}
+        PublicGameData {
+            trump: Suit::Hearts, closed: false,
+            winner: None, player_on_lead: Players::Player1,
+            first_card_in_trick: None
+        }
     }
 }
 

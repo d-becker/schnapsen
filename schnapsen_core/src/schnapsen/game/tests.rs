@@ -978,6 +978,9 @@ fn test_play_card_player2_card_ok_template(should_be_closed: bool) {
         Card{suit: Suit::Acorns, rank: Rank::Ace},
     ];
 
+    let first_card_to_deal = *stock.last().unwrap();
+    let second_card_to_deal = stock[stock.len() - 2];
+
     let original_stock_size = stock.len();
     
     let trump = stock[0].suit();
@@ -1021,12 +1024,19 @@ fn test_play_card_player2_card_ok_template(should_be_closed: bool) {
     let card2 = game.player2.hand[4];
 
     let first_card_result = game.play_card(card1);
-    assert!(first_card_result.is_ok());
+    assert_eq!(Ok(None), first_card_result);
 
     assert!(game.can_play_card(card2).is_ok());
+
+    // Player2 has won the trick, so the first card is dealt to them.
+    let expected_cards = if should_be_closed {
+        None
+    } else {
+        Some((second_card_to_deal, first_card_to_deal))
+    };
     
     let result = game.play_card(card2);
-    assert!(result.is_ok());
+    assert_eq!(Ok(expected_cards), result);
 
     assert!(!game.player1.hand.contains(&card1));
     assert!(!game.player2.hand.contains(&card2));
