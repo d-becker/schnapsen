@@ -3,7 +3,7 @@ use std::borrow::{Borrow, BorrowMut};
 use cards::{Card, Suit, Rank};
 use schnapsen::{ErrorKind, Players, player::Player};
 use schnapsen::{first_beats_second, value};
-use schnapsen::game::game_data::PublicGameData;
+use schnapsen::game_data::PublicGameData;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PlayerGame<P, D>

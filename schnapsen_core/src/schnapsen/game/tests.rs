@@ -1,6 +1,18 @@
 use super::*;
 
 #[test]
+fn test_new_with_odd_number_of_cards_fails() {
+    let mut deck = generate_deck();
+    let card_popped = deck.pop();
+
+    assert!(card_popped.is_some());
+    assert_eq!(1, deck.len() % 2);
+
+    let game_option = Game::new_(deck);
+    assert!(game_option.is_none());
+}
+
+#[test]
 fn test_new_random_game() {
     let game = Game::new_random();
 
