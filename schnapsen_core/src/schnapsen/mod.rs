@@ -7,10 +7,11 @@ use cards::{Card, Suit, Rank};
 use std::vec::Vec;
 
 pub use self::game::Game;
+pub use self::game::PlayerGame;
 pub use self::game_adapter::GameAdapter;
 pub use self::player::Player;
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ErrorKind {
     GameOver,
     DeckClosed,

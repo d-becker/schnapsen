@@ -749,12 +749,12 @@ fn test_play_game_already_over() {
 
     let card = game.player1.hand[0];
 
-    let expected_error = Err(ErrorKind::GameOver);
+    let expected_error = ErrorKind::GameOver;
 
-    assert_eq!(expected_error, game.can_play_card(card));
+    assert_eq!(Err(expected_error), game.can_play_card(card));
 
     let result = game.play_card(card);
-    assert_eq!(expected_error, result);
+    assert_eq!(Err(expected_error), result);
 }
 
 #[test]
@@ -763,12 +763,12 @@ fn test_play_card_invalid_player1_card() {
 
     let removed_card = game.player1.hand.pop().unwrap();
 
-    let expected_error = Err(ErrorKind::NoSuchCardInHand(removed_card));
+    let expected_error = ErrorKind::NoSuchCardInHand(removed_card);
 
-    assert_eq!(expected_error, game.can_play_card(removed_card));
+    assert_eq!(Err(expected_error), game.can_play_card(removed_card));
     
     let result = game.play_card(removed_card);
-    assert_eq!(expected_error, result);
+    assert_eq!(Err(expected_error), result);
 }
 
 #[test]
@@ -781,12 +781,12 @@ fn test_play_card_invalid_player2_card() {
     let first_card_result = game.play_card(player1_card);
     assert!(first_card_result.is_ok());
 
-    let expected_error = Err(ErrorKind::NoSuchCardInHand(removed_card));
+    let expected_error = ErrorKind::NoSuchCardInHand(removed_card);
 
-    assert_eq!(expected_error, game.can_play_card(removed_card));
+    assert_eq!(Err(expected_error), game.can_play_card(removed_card));
     
     let result = game.play_card(removed_card);
-    assert_eq!(expected_error, result);
+    assert_eq!(Err(expected_error), result);
 }
 
 #[test]
@@ -892,11 +892,11 @@ fn test_play_card_stock_depleted_must_be_higher() {
     let first_card_result = game.play_card(card1);
     assert!(first_card_result.is_ok());
 
-    let expected_error = Err(ErrorKind::MustTake(card2_takes));
-    assert_eq!(expected_error, game.can_play_card(card2));
+    let expected_error = ErrorKind::MustTake(card2_takes);
+    assert_eq!(Err(expected_error), game.can_play_card(card2));
 
     let result = game.play_card(card2);
-    assert_eq!(expected_error, result);
+    assert_eq!(Err(expected_error), result);
 }
 
 #[test]
@@ -933,12 +933,12 @@ fn test_play_card_stock_depleted_must_use_trump() {
     let first_card_result = game.play_card(card1);
     assert!(first_card_result.is_ok());
 
-    let expected_error = Err(ErrorKind::MustUseTrump);
+    let expected_error = ErrorKind::MustUseTrump;
 
-    assert_eq!(expected_error, game.can_play_card(card2));
+    assert_eq!(Err(expected_error), game.can_play_card(card2));
 
     let result = game.play_card(card2);
-    assert_eq!(expected_error, result);
+    assert_eq!(Err(expected_error), result);
 }
 
 #[test]
