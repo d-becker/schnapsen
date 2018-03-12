@@ -63,9 +63,34 @@ impl<P, D> PlayerGame<P, D>
         }
     }
 
-    pub fn can_call_twenty(&self, suit: Suit) -> Result<(), ErrorKind> {
+    pub fn can_declare_win(&self) -> Result<(), ErrorKind> {
         self.on_turn()?;
         self.on_lead()?;
+
+        let borrowed_data = self.public_data.borrow();
+        
+        if borrowed_data.is_game_over() {
+            return Err(ErrorKind::GameOver);
+        }
+        
+        let player = self.player.borrow();
+
+        let player_score = player.score();
+        
+        if player_score < 66 {
+            Err(ErrorKind::ScoreTooLow(player_score))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn can_play_card_twenty(&self, card: Card) -> Result<(), ErrorKind> {
+        self.on_turn()?;
+        self.on_lead()?;
+
+        if card.rank() != Rank::Ober && card.rank() != Rank::King {
+            return Err(ErrorKind::NotTwentyCard(card));
+        }
 
         let borrowed_data = self.public_data.borrow();
         if borrowed_data.is_game_over() {
@@ -74,13 +99,19 @@ impl<P, D> PlayerGame<P, D>
         
         let player = self.player.borrow();
 
-        let ober = Card::new(suit, Rank::Ober);
-        let king = Card::new(suit, Rank::King);
+        let other_rank_in_twenty = if card.rank() == Rank::Ober {
+            Rank::King
+        } else {
+            Rank::Ober
+        };
+
+        let suit = card.suit();
+        let other_card_in_twenty = Card::new(suit, other_rank_in_twenty);
         
-        if !player.hand.contains(&ober) {
-            Err(ErrorKind::NoSuchCardInHand(ober))
-        } else if !player.hand.contains(&king) {
-            Err(ErrorKind::NoSuchCardInHand(king))
+        if !player.hand.contains(&card) {
+            Err(ErrorKind::NoSuchCardInHand(card))
+        } else if !player.hand.contains(&other_card_in_twenty) {
+            Err(ErrorKind::NoSuchCardInHand(other_card_in_twenty))
         } else if player.twenties.contains(&suit) {
             Err(ErrorKind::AlreadyCalledThisTwenty(suit))
         } else if suit == borrowed_data.trump {
@@ -90,9 +121,13 @@ impl<P, D> PlayerGame<P, D>
         }
     }
 
-    pub fn can_call_forty(&self) -> Result<(), ErrorKind> {
+    pub fn can_play_card_forty(&self, card: Card) -> Result<(), ErrorKind> {
         self.on_turn()?;
         self.on_lead()?;
+
+        if card.rank() != Rank::Ober && card.rank() != Rank::King {
+            return Err(ErrorKind::NotFortyCard(card));
+        }
 
         let borrowed_data = self.public_data.borrow();
         
@@ -111,27 +146,6 @@ impl<P, D> PlayerGame<P, D>
             Err(ErrorKind::NoSuchCardInHand(king))
         } else if player.forty.is_some() {
             Err(ErrorKind::AlreadyCalledForty)
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn can_declare_win(&self) -> Result<(), ErrorKind> {
-        self.on_turn()?;
-        self.on_lead()?;
-
-        let borrowed_data = self.public_data.borrow();
-        
-        if borrowed_data.is_game_over() {
-            return Err(ErrorKind::GameOver);
-        }
-        
-        let player = self.player.borrow();
-
-        let player_score = player.score();
-        
-        if player_score < 66 {
-            Err(ErrorKind::ScoreTooLow(player_score))
         } else {
             Ok(())
         }
@@ -233,30 +247,6 @@ impl<P, D> PlayerGame<P, D>
         can_exchange_trump
     }
 
-    pub fn call_twenty(&mut self, suit: Suit) -> Result<(), ErrorKind> {
-        let can_call_twenty = self.can_call_twenty(suit);
-
-        if can_call_twenty.is_ok() {
-            let player = self.player.borrow_mut();
-
-            player.twenties.push(suit);
-        }
-        
-        can_call_twenty
-    }
-
-    pub fn call_forty(&mut self) -> Result<(), ErrorKind> {
-        let can_call_forty = self.can_call_forty();
-        if can_call_forty.is_ok() {
-            let trump = self.public_data.borrow().trump;
-            let player = self.player.borrow_mut();
-
-            player.forty = Some(trump);
-        }
-
-        can_call_forty
-    }
-
     pub fn declare_win(&mut self) -> Result<(), ErrorKind> {
         let can_declare_win = self.can_declare_win();
         if can_declare_win.is_ok() {
@@ -264,6 +254,30 @@ impl<P, D> PlayerGame<P, D>
         }
 
         can_declare_win
+    }
+
+    pub fn play_card_twenty(&mut self, card: Card) -> Result<(), ErrorKind> {
+        self.can_play_card_twenty(card)?;
+
+        {
+            let player = self.player.borrow_mut();
+            player.twenties.push(card.suit());
+        }
+
+        self.play_card(card).map(|_| ())
+    }
+
+    pub fn play_card_forty(&mut self, card: Card) -> Result<(), ErrorKind> {
+        self.can_play_card_forty(card)?;
+
+        {
+            let trump = self.public_data.borrow().trump;
+            let player = self.player.borrow_mut();
+
+            player.forty = Some(trump);
+        }
+
+        self.play_card(card).map(|_| ())
     }
 
     pub fn play_card(&mut self, card: Card) -> Result<(), ErrorKind> {

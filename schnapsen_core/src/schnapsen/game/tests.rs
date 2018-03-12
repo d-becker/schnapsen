@@ -339,7 +339,7 @@ fn test_exchange_trump_ok() {
 }
 
 #[test]
-fn test_call_twenty_not_on_lead() {
+fn test_play_card_twenty_not_on_lead() {
     let stock = Vec::new();
 
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ober),
@@ -369,25 +369,25 @@ fn test_call_twenty_not_on_lead() {
 
     let expected_error = Err(ErrorKind::PlayerNotOnLead);
     
-    let twenty_suit = Suit::Bells;
-    assert_eq!(expected_error, game.can_call_twenty(twenty_suit));
+    let twenty_card = Card::new(Suit::Bells, Rank::King);
+    assert_eq!(expected_error, game.can_play_card_twenty(twenty_card));
 
-    let result = game.call_twenty(twenty_suit);
+    let result = game.play_card_twenty(twenty_card);
     assert_eq!(expected_error, result);
 }
 
 #[test]
-fn test_call_twenty_no_such_cards() {
+fn test_play_card_twenty_no_such_cards() {
     let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
                      Card::new(Suit::Bells, Rank::Ace),
-                     Card::new(Suit::Bells, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
                      Card::new(Suit::Hearts, Rank::Ace)];
 
     let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
                      Card::new(Suit::Leaves, Rank::Unter),
-                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
                      Card::new(Suit::Bells, Rank::Unter),
                      Card::new(Suit::Hearts, Rank::Ten)];
 
@@ -398,18 +398,19 @@ fn test_call_twenty_no_such_cards() {
     let public_data = PublicGameData {trump, ..Default::default()};
     let mut game = Game {stock, public_data, player1, player2,
                          ..Default::default()};
-    
+
+    let twenty_card = Card::new(Suit::Bells, Rank::Ober);
     let expected_error = Err(ErrorKind::NoSuchCardInHand(
-        Card::new(Suit::Bells, Rank::Ober)));
+        Card::new(Suit::Bells, Rank::King)));
 
-    assert_eq!(expected_error, game.can_call_twenty(Suit::Bells));
+    assert_eq!(expected_error, game.can_play_card_twenty(twenty_card));
 
-    let result = game.call_twenty(Suit::Bells);
+    let result = game.play_card_twenty(twenty_card);
     assert_eq!(expected_error, result);
 }
 
 #[test]
-fn test_call_twenty_already_called_the_same() {
+fn test_play_card_twenty_suit_is_trump() {
     let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
@@ -426,62 +427,57 @@ fn test_call_twenty_already_called_the_same() {
     let player1 = Player {hand: hand1, ..Default::default()};
     let player2 = Player {hand: hand2, ..Default::default()};
 
-    let trump = Suit::Hearts;
-    let public_data = PublicGameData {trump, ..Default::default()};
-    let mut game = Game {stock, public_data, player1, player2,
-                         ..Default::default()};
-    
-    let twenty_suit = Suit::Bells;
-    
-    let twenty_result = game.call_twenty(twenty_suit);
-    assert!(twenty_result.is_ok());
+    let twenty_card = Card::new(Suit::Bells, Rank::King);
 
-    let expected_error = Err(ErrorKind::AlreadyCalledThisTwenty(twenty_suit));
-    
-    assert!(game.player1.twenties.contains(&twenty_suit));
-
-    assert_eq!(expected_error, game.can_call_twenty(twenty_suit));
-
-    let result = game.call_twenty(twenty_suit);
-    assert_eq!(expected_error, result);
-}
-
-#[test]
-fn test_call_twenty_suit_is_trump() {
-    let stock = Vec::new();
-    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
-                     Card::new(Suit::Leaves, Rank::Ten),
-                     Card::new(Suit::Bells, Rank::Ober),
-                     Card::new(Suit::Bells, Rank::King),
-                     Card::new(Suit::Hearts, Rank::Ace)];
-
-    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
-                     Card::new(Suit::Leaves, Rank::Unter),
-                     Card::new(Suit::Bells, Rank::Ace),
-                     Card::new(Suit::Bells, Rank::Unter),
-                     Card::new(Suit::Hearts, Rank::Ten)];
-
-    let player1 = Player {hand: hand1, ..Default::default()};
-    let player2 = Player {hand: hand2, ..Default::default()};
-
-    let twenty_suit = Suit::Bells;
-
-    let public_data = PublicGameData {trump: twenty_suit, ..Default::default()};
+    let public_data = PublicGameData {trump: twenty_card.suit(),
+                                      ..Default::default()};
     let mut game = Game {stock, public_data, player1, player2,
                          ..Default::default()};
     
     let expected_error = Err(ErrorKind::TwentyWithTrumpSuit);
 
-    assert_eq!(expected_error, game.can_call_twenty(twenty_suit));
+    assert_eq!(expected_error, game.can_play_card_twenty(twenty_card));
 
-    let result = game.call_twenty(twenty_suit);
+    let result = game.play_card_twenty(twenty_card);
     assert_eq!(expected_error, result);
 
-    assert!(!game.player1.twenties.contains(&twenty_suit));
+    assert!(!game.player1.twenties.contains(&twenty_card.suit()));
 }
 
 #[test]
-fn test_call_twenty_ok() {
+fn test_play_card_twenty_play_wrong_card() {
+    let stock = Vec::new();
+    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
+                     Card::new(Suit::Hearts, Rank::Ace)];
+
+    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
+                     Card::new(Suit::Leaves, Rank::Unter),
+                     Card::new(Suit::Bells, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Unter),
+                     Card::new(Suit::Hearts, Rank::Ten)];
+
+    let player1 = Player {hand: hand1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Hearts;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
+    
+    let twenty_card = Card::new(Suit::Bells, Rank::Ten);
+
+    let expected_error = Err(ErrorKind::NotTwentyCard(twenty_card));
+    assert_eq!(expected_error, game.can_play_card_twenty(twenty_card));
+
+    let result = game.play_card_twenty(twenty_card);
+    assert_eq!(expected_error, result);
+}
+
+#[test]
+fn test_play_card_twenty_ok() {
     let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
@@ -503,17 +499,18 @@ fn test_call_twenty_ok() {
     let mut game = Game {stock, public_data, player1, player2,
                          ..Default::default()};
     
-    let twenty_suit = Suit::Bells;
-    assert!(game.can_call_twenty(twenty_suit).is_ok());
+    let twenty_card = Card::new(Suit::Bells, Rank::King);
+    assert!(game.can_play_card_twenty(twenty_card).is_ok());
 
-    let result = game.call_twenty(twenty_suit);
+    let result = game.play_card_twenty(twenty_card);
     assert!(result.is_ok());
+    assert_eq!(Some(twenty_card), game.public_data.first_card_in_trick);
 
-    assert!(game.player1.twenties.contains(&twenty_suit));
+    assert!(game.player1.twenties.contains(&twenty_card.suit()));
 }
 
 #[test]
-fn test_call_forty_not_on_lead() {
+fn test_play_card_forty_not_on_lead() {
     let stock = Vec::new();
 
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ober),
@@ -534,6 +531,7 @@ fn test_call_forty_not_on_lead() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
+    let forty_card = Card::new(trump, Rank::King);
     let public_data = PublicGameData {trump, ..Default::default()};
     let mut game = Game {stock, public_data, player1, player2,
                          ..Default::default()};
@@ -543,14 +541,14 @@ fn test_call_forty_not_on_lead() {
 
     let expected_error = Err(ErrorKind::PlayerNotOnLead);
     
-    assert_eq!(expected_error, game.can_call_forty());
+    assert_eq!(expected_error, game.can_play_card_forty(forty_card));
 
-    let result = game.call_forty();
+    let result = game.play_card_forty(forty_card);
     assert_eq!(expected_error, result);
 }
 
 #[test]
-fn test_call_forty_no_such_cards() {
+fn test_play_card_forty_no_such_cards() {
     let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
@@ -568,6 +566,7 @@ fn test_call_forty_no_such_cards() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
+    let forty_card = Card::new(trump, Rank::Ober);
     let public_data = PublicGameData {trump, ..Default::default()};
     let mut game = Game {stock, public_data, player1, player2,
                          ..Default::default()};
@@ -575,14 +574,45 @@ fn test_call_forty_no_such_cards() {
     let expected_error = Err(ErrorKind::NoSuchCardInHand(
         Card::new(trump, Rank::Ober)));
     
-    assert_eq!(expected_error, game.can_call_forty());
+    assert_eq!(expected_error, game.can_play_card_forty(forty_card));
 
-    let result = game.call_forty();
+    let result = game.play_card_forty(forty_card);
     assert_eq!(expected_error, result);
 }
 
 #[test]
-fn test_call_forty_already_called_the_same() {
+fn test_play_card_forty_wrong_card() {
+    let stock = Vec::new();
+    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
+                     Card::new(Suit::Hearts, Rank::Ace)];
+
+    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
+                     Card::new(Suit::Leaves, Rank::Unter),
+                     Card::new(Suit::Bells, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Unter),
+                     Card::new(Suit::Hearts, Rank::Ten)];
+
+    let player1 = Player {hand: hand1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Bells;
+    let forty_card = Card::new(trump, Rank::Ten);
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
+
+    let expected_error = Err(ErrorKind::NotFortyCard(forty_card));
+    assert_eq!(expected_error, game.can_play_card_forty(forty_card));
+
+    let result = game.play_card_forty(forty_card);
+    assert_eq!(expected_error, result);
+}
+
+#[test]
+fn test_play_card_forty_ok() {
     let stock = Vec::new();
     let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten),
@@ -600,49 +630,16 @@ fn test_call_forty_already_called_the_same() {
     let player2 = Player {hand: hand2, ..Default::default()};
 
     let trump = Suit::Bells;
-    let public_data = PublicGameData {trump, ..Default::default()};
-    let mut game = Game {stock, public_data, player1, player2,
-                         ..Default::default()};
-    
-    let forty_result = game.call_forty();
-    assert!(forty_result.is_ok());
-    assert_eq!(Some(trump), game.player1.forty);
-
-    let expected_error = Err(ErrorKind::AlreadyCalledForty);
-    assert_eq!(expected_error, game.can_call_forty());
-
-    let result = game.call_forty();
-    assert_eq!(expected_error, result);
-}
-
-#[test]
-fn test_call_forty_ok() {
-    let stock = Vec::new();
-    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
-                     Card::new(Suit::Leaves, Rank::Ten),
-                     Card::new(Suit::Bells, Rank::Ober),
-                     Card::new(Suit::Bells, Rank::King),
-                     Card::new(Suit::Hearts, Rank::Ace)];
-
-    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
-                     Card::new(Suit::Leaves, Rank::Unter),
-                     Card::new(Suit::Bells, Rank::Ace),
-                     Card::new(Suit::Bells, Rank::Unter),
-                     Card::new(Suit::Hearts, Rank::Ten)];
-
-    let player1 = Player {hand: hand1, ..Default::default()};
-    let player2 = Player {hand: hand2, ..Default::default()};
-
-    let trump = Suit::Bells;
+    let forty_card = Card::new(trump, Rank::King);
     let public_data = PublicGameData {trump, ..Default::default()};
     let mut game = Game {stock, public_data, player1, player2,
                          ..Default::default()};
 
-    assert!(game.can_call_forty().is_ok());
+    assert!(game.can_play_card_forty(forty_card).is_ok());
 
-    let result = game.call_forty();
+    let result = game.play_card_forty(forty_card);
     assert!(result.is_ok());
-
+    assert_eq!(Some(forty_card), game.public_data.first_card_in_trick);
     assert_eq!(Some(trump), game.player1.forty);
 }
 

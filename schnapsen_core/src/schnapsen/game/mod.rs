@@ -146,32 +146,6 @@ impl Game {
         res
     }
 
-    pub fn can_call_twenty(&self, suit: Suit) -> Result<(), ErrorKind> {
-        let player_on_turn = self.player_on_turn();
-        let data_as_player = self.get_data_as_player(player_on_turn);
-        data_as_player.can_call_twenty(suit)
-    }
-
-    pub fn call_twenty(&mut self, suit: Suit) -> Result<(), ErrorKind> {
-        let player_on_turn = self.player_on_turn();
-        let mut data_as_player_mut
-            = self.get_data_as_player_mut(player_on_turn);
-        data_as_player_mut.call_twenty(suit)
-    }
-
-    pub fn can_call_forty(&self) -> Result<(), ErrorKind> {
-        let player_on_turn = self.player_on_turn();
-        let data_as_player = self.get_data_as_player(player_on_turn);
-        data_as_player.can_call_forty()
-    }
-
-    pub fn call_forty(&mut self) -> Result<(), ErrorKind> {
-        let player_on_turn = self.player_on_turn();
-        let mut data_as_player_mut
-            = self.get_data_as_player_mut(player_on_turn);
-        data_as_player_mut.call_forty()
-    }
-
     pub fn can_declare_win(&self) -> Result<(), ErrorKind> {
         let player_on_turn = self.player_on_turn();
         let data_as_player = self.get_data_as_player(player_on_turn);
@@ -184,6 +158,32 @@ impl Game {
         let mut data_as_player_mut
             = self.get_data_as_player_mut(player_on_turn);
         data_as_player_mut.declare_win()
+    }
+
+    pub fn can_play_card_twenty(&self, card: Card) -> Result<(), ErrorKind> {
+        let player_on_turn = self.player_on_turn();
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_play_card_twenty(card)
+    }
+
+    pub fn play_card_twenty(&mut self, card: Card) -> Result<(), ErrorKind> {
+        let player_on_turn = self.player_on_turn();
+        let mut data_as_player_mut
+            = self.get_data_as_player_mut(player_on_turn);
+        data_as_player_mut.play_card_twenty(card)
+    }
+
+    pub fn can_play_card_forty(&self, card: Card) -> Result<(), ErrorKind> {
+        let player_on_turn = self.player_on_turn();
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_play_card_forty(card)
+    }
+
+    pub fn play_card_forty(&mut self, card: Card) -> Result<(), ErrorKind> {
+        let player_on_turn = self.player_on_turn();
+        let mut data_as_player_mut
+            = self.get_data_as_player_mut(player_on_turn);
+        data_as_player_mut.play_card_forty(card)
     }
 
     pub fn can_play_card(&self, card: Card) -> Result<(), ErrorKind> {
@@ -205,9 +205,13 @@ impl Game {
             self.play_second_card(card, card_on_lead)
         } else {
             // We are playing the first card in the trick.
-            self.public_data.first_card_in_trick = Some(card);
-            Ok(None)
+            self.play_first_card(card).map(|_| None)
         }
+    }
+
+    fn play_first_card(&mut self, card: Card) -> Result<(), ErrorKind> {
+        self.public_data.first_card_in_trick = Some(card);
+        Ok(())
     }
 
     fn play_second_card(&mut self, card: Card, card_on_lead: Card)
