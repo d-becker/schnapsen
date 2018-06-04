@@ -33,21 +33,6 @@ pub enum ErrorKind {
     ScoreTooLow(u32)
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum Players {
-    Player1,
-    Player2
-}
-
-impl Players {
-    pub fn other(&self) -> Players {
-        match *self {
-            Players::Player1 => Players::Player2,
-            Players::Player2 => Players::Player1
-        }
-    }
-}
-
 pub fn value(card: Card) -> u32 {
     match card.rank() {
         Rank::Unter => 2,

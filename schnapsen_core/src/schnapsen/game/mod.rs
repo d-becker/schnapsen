@@ -2,8 +2,10 @@ use rand;
 use rand::Rng;
 
 use cards::{Card, Suit, Rank};
-use schnapsen::{ErrorKind, Players, player::Player};
-use schnapsen::{generate_deck, first_beats_second};
+use schnapsen::ErrorKind;
+use schnapsen::player::{Player, PlayerId};
+
+use schnapsen::generate_deck;
 
 use super::game_data::PublicGameData;
 use super::player_game::PlayerGame;
@@ -41,7 +43,7 @@ impl Game {
         let trump = stock[0].suit();
 
         let public_data = PublicGameData {trump, closed: false, winner: None,
-                                          player_on_lead: Players::Player1,
+                                          player_on_lead: PlayerId::Player1,
                                           first_card_in_trick: None};
         let game = Game {stock,
               player1: Player {name: "Player1".to_string(),
@@ -70,18 +72,18 @@ impl Game {
         &self.player2
     }
 
-    pub fn get_player(&self, player: Players) -> &Player {
+    pub fn get_player(&self, player: PlayerId) -> &Player {
         match player {
-            Players::Player1 => self.get_player1(),
-            Players::Player2 => self.get_player2()
+            PlayerId::Player1 => self.get_player1(),
+            PlayerId::Player2 => self.get_player2()
         }
     }
 
-    pub fn player_on_lead(&self) -> Players {
+    pub fn player_on_lead(&self) -> PlayerId {
         self.public_data.player_on_lead
     }
     
-    pub fn player_on_turn(&self) -> Players {
+    pub fn player_on_turn(&self) -> PlayerId {
         self.public_data.player_on_turn()
     }
 
@@ -118,7 +120,7 @@ impl Game {
         self.public_data.is_game_over()
     }
 
-    pub fn winner(&self) -> Option<Players> {
+    pub fn winner(&self) -> Option<PlayerId> {
         self.public_data.winner
     }
 
@@ -193,67 +195,39 @@ impl Game {
 
     pub fn play_card(&mut self, card: Card)
                      -> Result<Option<(Card, Card)>, ErrorKind> {
-        self.can_play_card(card)?;
-
         let player_on_turn = self.player_on_turn();
 
-        self.remove_card_from_hand(player_on_turn, card);
-
-        if let Some(card_on_lead) = self.public_data.first_card_in_trick  {
-            // We are playing the second card in the trick.
-            self.play_second_card(card, card_on_lead)
-        } else {
-            // We are playing the first card in the trick.
-            self.play_first_card(card).map(|_| None)
-        }
-    }
-
-    fn play_first_card(&mut self, card: Card) -> Result<(), ErrorKind> {
-        self.public_data.first_card_in_trick = Some(card);
-        Ok(())
-    }
-
-    fn play_second_card(&mut self, card: Card, card_on_lead: Card)
-                        -> Result<Option<(Card, Card)>, ErrorKind> {
-        let player_on_turn = self.player_on_turn();
-        
-        let player_on_lead_wins
-            = first_beats_second(card_on_lead, card,
-                                 self.public_data.trump);
-
-        let winning_player_marker = if player_on_lead_wins
-        {
-            self.player_on_lead()
-        } else {
-            player_on_turn
+        let result: Option<(PlayerId, Card)> = {
+            let mut data_as_player_mut
+                = self.get_data_as_player_mut(player_on_turn);
+            data_as_player_mut.play_card(card)?
         };
 
-        self.add_cards_to_wins(winning_player_marker,
-                               &[card_on_lead, card]);
+        if let Some((winner_id, card_on_lead)) = result {
+            if player_on_turn != winner_id {
+                self.add_cards_to_wins(winner_id, &[card_on_lead, card]);
+            }
 
-        let dealed_cards
-            = self.deal_if_not_closed_or_empty(winning_player_marker);
-        self.public_data.player_on_lead = winning_player_marker;
-        self.public_data.first_card_in_trick = None;
+            let dealed_cards
+                = self.deal_if_not_closed_or_empty(winner_id);
+            
+            self.public_data.player_on_lead = winner_id;
+            self.public_data.first_card_in_trick = None;
 
-        // Actually the players should always have
-        // the same number of cards in their hands.
-        if self.player1.hand.is_empty()
-            || self.player2.hand.is_empty() {
-                self.public_data.winner = Some(winning_player_marker);
+            Ok(dealed_cards)
+        } else {
+            Ok(None)
         }
-
-        Ok(dealed_cards)
     }
 
-    fn get_player_mut(&mut self, player: Players) -> &mut Player {
+    fn get_player_mut(&mut self, player: PlayerId) -> &mut Player {
         match player {
-            Players::Player1 => &mut self.player1,
-            Players::Player2 => &mut self.player2
+            PlayerId::Player1 => &mut self.player1,
+            PlayerId::Player2 => &mut self.player2
         }
     }
 
-    fn get_data_as_player(&self, player_id: Players)
+    fn get_data_as_player(&self, player_id: PlayerId)
                           -> PlayerGame<&Player, &PublicGameData> {
         let player = self.get_player(player_id);
         let stock_size = self.stock.len() as u32;
@@ -263,35 +237,27 @@ impl Game {
                     trump_card_rank, public_data}
     }
 
-    fn get_data_as_player_mut(&mut self, player_id: Players)
+    fn get_data_as_player_mut(&mut self, player_id: PlayerId)
                               -> PlayerGame<&mut Player, &mut PublicGameData>
     {
         let stock_size = self.stock.len() as u32;
         let trump_card_rank = self.trump_card().map(|card| card.rank());
         let public_data = &mut self.public_data;
         let player = match player_id {
-            Players::Player1 => &mut self.player1,
-            Players::Player2 => &mut self.player2
+            PlayerId::Player1 => &mut self.player1,
+            PlayerId::Player2 => &mut self.player2
         };
         
         PlayerGame {player_id, player, stock_size,
                         trump_card_rank, public_data}
     }
 
-    fn remove_card_from_hand(&mut self, player: Players, card: Card) {
-        let player = self.get_player_mut(player);
-
-        let index_option = player.hand.iter().position(
-            |&card_in_hand| card_in_hand == card);
-        index_option.map(|index| player.hand.remove(index));
-    }
-
-    fn add_cards_to_wins(&mut self, player: Players, cards: &[Card]) {
+    fn add_cards_to_wins(&mut self, player: PlayerId, cards: &[Card]) {
         let player_wins = &mut self.get_player_mut(player).wins;
         player_wins.extend_from_slice(cards);
     }
 
-    fn deal_if_not_closed_or_empty(&mut self, winner_of_trick: Players)
+    fn deal_if_not_closed_or_empty(&mut self, winner_of_trick: PlayerId)
                                    -> Option<(Card, Card)> {
         if self.is_closed() || self.stock.is_empty() {
             return None;
@@ -313,7 +279,7 @@ impl Game {
             losing_player.hand.push(loser_new_card);
         }
 
-        if winner_of_trick == Players::Player1 {
+        if winner_of_trick == PlayerId::Player1 {
             Some((winner_new_card, loser_new_card))
         } else {
             Some((loser_new_card, winner_new_card))

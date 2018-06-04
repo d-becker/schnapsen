@@ -1,16 +1,18 @@
 use std::borrow::{Borrow, BorrowMut};
 
 use cards::{Card, Suit, Rank};
-use schnapsen::{ErrorKind, Players, player::Player};
+
+use schnapsen::ErrorKind;
 use schnapsen::{first_beats_second, value};
 use schnapsen::game_data::PublicGameData;
+use schnapsen::player::{PlayerId, Player};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PlayerGame<P, D>
     where P: Borrow<Player>,
           D: Borrow<PublicGameData>
 {
-    pub player_id: Players,
+    pub player_id: PlayerId,
     pub player: P,
     pub stock_size: u32,
     pub trump_card_rank: Option<Rank>,
@@ -21,7 +23,7 @@ impl<P, D> PlayerGame<P, D>
     where P: Borrow<Player>,
           D: Borrow<PublicGameData>
 {
-    pub fn player_on_lead(&self) -> Players {
+    pub fn player_on_lead(&self) -> PlayerId {
         self.public_data.borrow().player_on_lead()
     }
     
@@ -280,7 +282,10 @@ impl<P, D> PlayerGame<P, D>
         self.play_card(card).map(|_| ())
     }
 
-    pub fn play_card(&mut self, card: Card) -> Result<(), ErrorKind> {
+    // Returns the winner of the trick and the first card in the trick, if this
+    // is the second card in the trick.
+    pub fn play_card(&mut self, card: Card)
+                     -> Result<Option<(PlayerId, Card)>, ErrorKind> {
         self.can_play_card(card)?;
 
         self.remove_card_from_hand(card);
@@ -288,7 +293,10 @@ impl<P, D> PlayerGame<P, D>
         let borrowed_data = self.public_data.borrow_mut();
         match borrowed_data.first_card_in_trick {
             // We are playing the first card in the trick.
-            None => borrowed_data.first_card_in_trick = Some(card),
+            None => {
+                borrowed_data.first_card_in_trick = Some(card);
+                Ok(None)
+            },
 
             // We are playing the second card in the trick.
             Some(card_on_lead) => {
@@ -296,30 +304,36 @@ impl<P, D> PlayerGame<P, D>
                     = first_beats_second(card_on_lead, card,
                                          borrowed_data.trump);
 
-                let winning_player_marker = if player_on_lead_wins
+                let winning_player_id = if player_on_lead_wins
                 {
                     self.player_id.other()
                 } else {
                     self.player_id
                 };
 
-                if self.player_id == winning_player_marker {
+                if self.player_id == winning_player_id {
                     let player = self.player.borrow_mut();
                     player.wins.extend_from_slice(&[card_on_lead, card]);
                 }
 
-                borrowed_data.player_on_lead = winning_player_marker;
+                borrowed_data.player_on_lead = winning_player_id;
                 borrowed_data.first_card_in_trick = None;
 
-                self.stock_size -= 2;
+                let will_deal = !borrowed_data.is_closed()
+                    && self.stock_size > 0;
+                
                 let hand_empty = self.player.borrow().hand.is_empty();
-                if self.stock_size == 0 && hand_empty {
-                    borrowed_data.winner = Some(winning_player_marker);
+                if !will_deal && hand_empty {
+                    borrowed_data.winner = Some(winning_player_id);
                 }
+
+                if will_deal {
+                    self.stock_size -= 2;
+                }
+
+                Ok(Some((winning_player_id, card_on_lead)))
             }
         }
-        
-        Ok(())
     }
 
     fn remove_card_from_hand(&mut self, card: Card) {
@@ -330,7 +344,6 @@ impl<P, D> PlayerGame<P, D>
         index_option.map(|index| player.hand.remove(index));
     }
 }
-
 
 fn legal_second_card_in_endgame(card1: Card,
                                 hand2: &[Card], card2: Card,

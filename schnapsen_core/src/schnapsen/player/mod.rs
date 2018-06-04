@@ -2,6 +2,21 @@ use cards::{Card, Suit};
 
 use std::vec::Vec;
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum PlayerId {
+    Player1,
+    Player2
+}
+
+impl PlayerId {
+    pub fn other(&self) -> PlayerId {
+        match *self {
+            PlayerId::Player1 => PlayerId::Player2,
+            PlayerId::Player2 => PlayerId::Player1
+        }
+    }
+}
+
 #[derive(Default, Debug)]
 pub struct Player {
     pub(super) name: String,
