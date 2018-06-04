@@ -207,7 +207,7 @@ impl<P, D> PlayerGame<P, D>
         if self.public_data.borrow().player_on_turn() == self.player_id {
             Ok(())
         } else {
-            Err(ErrorKind::PlayerNotOnLead)
+            Err(ErrorKind::NotPlayersTurn)
         }
     }
 }

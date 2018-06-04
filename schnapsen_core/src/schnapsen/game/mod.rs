@@ -26,13 +26,12 @@ impl Default for Game {
 
 impl Game {
     fn new_(mut deck: Vec<Card>) -> Option<Game> {
-        let deck_length = deck.len();
-
         // Don't allow an odd number of cards in the deck.
-        if deck_length % 2 == 1 {
+        if deck.len() % 2 == 1 {
             return None;
         }
         
+        let deck_length = deck.len();
         let hand1 = deck.split_off(deck_length - 5);
         
         let deck_length = deck.len();
