@@ -259,9 +259,9 @@ fn test_exchange_trump_not_enough_cards_in_stock() {
 #[test]
 fn test_exchange_trump_closed() {
      let stock = vec![Card{suit: Suit::Hearts, rank: Rank::Ober},
-                    Card{suit: Suit::Hearts, rank: Rank::King},
-                    Card{suit: Suit::Hearts, rank: Rank::Ten},
-                    Card{suit: Suit::Hearts, rank: Rank::Ace}];
+                      Card{suit: Suit::Hearts, rank: Rank::King},
+                      Card{suit: Suit::Hearts, rank: Rank::Ten},
+                      Card{suit: Suit::Hearts, rank: Rank::Ace}];
 
     let player1_hand = vec![Card{suit: Suit::Hearts, rank: Rank::Unter},
                             Card{suit: Suit::Bells, rank: Rank::Ober},
@@ -510,6 +510,78 @@ fn test_play_card_twenty_ok() {
 }
 
 #[test]
+fn test_declare_twenty_score_too_low() {
+    let stock = Vec::new();
+    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
+                     Card::new(Suit::Leaves, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
+                     Card::new(Suit::Hearts, Rank::Ace)];
+
+    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
+                     Card::new(Suit::Leaves, Rank::Unter),
+                     Card::new(Suit::Bells, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Unter),
+                     Card::new(Suit::Hearts, Rank::Ten)];
+
+    let wins1 = vec![Card::new(Suit::Acorns, Rank::Ace)];
+
+    let player1 = Player {hand: hand1, wins: wins1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Hearts;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
+    
+    let twenty_suit = Suit::Bells;
+
+    let score = game.get_player1().score();
+    let expected_error = Err(ErrorKind::ScoreTooLow(score));
+    assert_eq!(expected_error, game.can_declare_twenty_win(twenty_suit));
+
+    let result = game.declare_twenty_win(twenty_suit);
+    assert_eq!(expected_error, result);
+}
+
+#[test]
+fn test_declare_twenty_ok() {
+    let stock = Vec::new();
+    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
+                     Card::new(Suit::Leaves, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
+                     Card::new(Suit::Hearts, Rank::Ober)];
+
+    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
+                     Card::new(Suit::Leaves, Rank::Unter),
+                     Card::new(Suit::Bells, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Unter),
+                     Card::new(Suit::Hearts, Rank::Unter)];
+
+    let wins1 = vec![Card::new(Suit::Acorns, Rank::Ace),
+                     Card::new(Suit::Acorns, Rank::Ten),
+                     Card::new(Suit::Hearts, Rank::Ace),
+                     Card::new(Suit::Hearts, Rank::Ten),
+                     Card::new(Suit::Leaves, Rank::King)];
+
+    let player1 = Player {hand: hand1, wins: wins1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Hearts;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
+    
+    let twenty_suit = Suit::Bells;
+    
+    assert!(game.can_declare_twenty_win(twenty_suit).is_ok());
+
+    let result = game.declare_twenty_win(twenty_suit);
+    assert!(result.is_ok());
+}
+
+#[test]
 fn test_play_card_forty_not_on_lead() {
     let stock = Vec::new();
 
@@ -609,6 +681,74 @@ fn test_play_card_forty_wrong_card() {
 
     let result = game.play_card_forty(forty_card);
     assert_eq!(expected_error, result);
+}
+
+#[test]
+fn test_declare_forty_too_low() {
+    let stock = Vec::new();
+    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
+                     Card::new(Suit::Leaves, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
+                     Card::new(Suit::Hearts, Rank::Ace)];
+
+    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
+                     Card::new(Suit::Leaves, Rank::Unter),
+                     Card::new(Suit::Bells, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Unter),
+                     Card::new(Suit::Hearts, Rank::Ten)];
+    
+    let wins1 = vec![Card::new(Suit::Acorns, Rank::Ace)];
+
+    let player1 = Player {hand: hand1, wins: wins1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Bells;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
+
+    let score = game.get_player1().score();
+    let expected_error = Err(ErrorKind::ScoreTooLow(score));
+    assert_eq!(expected_error, game.can_declare_forty_win());
+
+    let result = game.declare_forty_win();
+    assert_eq!(expected_error, result);
+}
+
+#[test]
+fn test_declare_forty_ok() {
+    let stock = Vec::new();
+    let hand1 = vec![Card::new(Suit::Leaves, Rank::Ace),
+                     Card::new(Suit::Leaves, Rank::Ten),
+                     Card::new(Suit::Bells, Rank::Ober),
+                     Card::new(Suit::Bells, Rank::King),
+                     Card::new(Suit::Hearts, Rank::Ober)];
+
+    let hand2 = vec![Card::new(Suit::Leaves, Rank::Ober),
+                     Card::new(Suit::Leaves, Rank::Unter),
+                     Card::new(Suit::Bells, Rank::Ace),
+                     Card::new(Suit::Bells, Rank::Unter),
+                     Card::new(Suit::Hearts, Rank::Unter)];
+
+    let wins1 = vec![Card::new(Suit::Acorns, Rank::Ace),
+                     Card::new(Suit::Acorns, Rank::Ten),
+                     Card::new(Suit::Hearts, Rank::Ace),
+                     Card::new(Suit::Hearts, Rank::Ten),
+                     Card::new(Suit::Leaves, Rank::King)];
+
+    let player1 = Player {hand: hand1, wins: wins1, ..Default::default()};
+    let player2 = Player {hand: hand2, ..Default::default()};
+
+    let trump = Suit::Bells;
+    let public_data = PublicGameData {trump, ..Default::default()};
+    let mut game = Game {stock, public_data, player1, player2,
+                         ..Default::default()};
+    
+    assert!(game.can_declare_forty_win().is_ok());
+
+    let result = game.declare_forty_win();
+    assert!(result.is_ok());
 }
 
 #[test]

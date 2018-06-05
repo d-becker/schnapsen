@@ -174,6 +174,19 @@ impl Game {
         data_as_player_mut.play_card_twenty(card)
     }
 
+    pub fn can_declare_twenty_win(&self, suit: Suit) -> Result<(), ErrorKind> {
+        let player_on_turn = self.player_on_turn();
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_declare_twenty_win(suit)
+    }
+
+    pub fn declare_twenty_win(&mut self, suit: Suit) -> Result<(), ErrorKind> {
+        let player_on_turn = self.player_on_turn();
+        let mut data_as_player_mut
+            = self.get_data_as_player_mut(player_on_turn);
+        data_as_player_mut.declare_twenty_win(suit)
+    }
+
     pub fn can_play_card_forty(&self, card: Card) -> Result<(), ErrorKind> {
         let player_on_turn = self.player_on_turn();
         let data_as_player = self.get_data_as_player(player_on_turn);
@@ -185,6 +198,19 @@ impl Game {
         let mut data_as_player_mut
             = self.get_data_as_player_mut(player_on_turn);
         data_as_player_mut.play_card_forty(card)
+    }
+
+    pub fn can_declare_forty_win(&self) -> Result<(), ErrorKind> {
+        let player_on_turn = self.player_on_turn();
+        let data_as_player = self.get_data_as_player(player_on_turn);
+        data_as_player.can_declare_forty_win()
+    }
+
+    pub fn declare_forty_win(&mut self) -> Result<(), ErrorKind> {
+        let player_on_turn = self.player_on_turn();
+        let mut data_as_player_mut
+            = self.get_data_as_player_mut(player_on_turn);
+        data_as_player_mut.declare_forty_win()
     }
 
     pub fn can_play_card(&self, card: Card) -> Result<(), ErrorKind> {

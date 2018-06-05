@@ -123,6 +123,18 @@ impl<P, D> PlayerGame<P, D>
         }
     }
 
+    pub fn can_declare_twenty_win(&self, suit: Suit) -> Result<(), ErrorKind> {
+        self.can_play_card_twenty(Card::new(suit, Rank::King))?;
+
+        let score = self.player.borrow().score();
+
+        if score >= 46 {
+            Ok(())
+        } else {
+            Err(ErrorKind::ScoreTooLow(score))
+        }
+    }
+
     pub fn can_play_card_forty(&self, card: Card) -> Result<(), ErrorKind> {
         self.on_turn()?;
         self.on_lead()?;
@@ -150,6 +162,19 @@ impl<P, D> PlayerGame<P, D>
             Err(ErrorKind::AlreadyCalledForty)
         } else {
             Ok(())
+        }
+    }
+
+    pub fn can_declare_forty_win(&self) -> Result<(), ErrorKind> {
+        let trump = self.public_data.borrow().trump;
+        self.can_play_card_forty(Card::new(trump, Rank::King))?;
+
+        let score = self.player.borrow().score();
+
+        if score >= 26 {
+            Ok(())
+        } else {
+            Err(ErrorKind::ScoreTooLow(score))
         }
     }
 
@@ -269,6 +294,15 @@ impl<P, D> PlayerGame<P, D>
         self.play_card(card).map(|_| ())
     }
 
+    pub fn declare_twenty_win(&mut self, suit: Suit) -> Result<(), ErrorKind> {
+        let can_declare_twenty_win = self.can_declare_twenty_win(suit);
+        if can_declare_twenty_win.is_ok() {
+            self.public_data.borrow_mut().winner = Some(self.player_id);
+        }
+
+        can_declare_twenty_win
+    }
+
     pub fn play_card_forty(&mut self, card: Card) -> Result<(), ErrorKind> {
         self.can_play_card_forty(card)?;
 
@@ -280,6 +314,15 @@ impl<P, D> PlayerGame<P, D>
         }
 
         self.play_card(card).map(|_| ())
+    }
+
+    pub fn declare_forty_win(&mut self) -> Result<(), ErrorKind> {
+        let can_declare_forty_win = self.can_declare_forty_win();
+        if can_declare_forty_win.is_ok() {
+            self.public_data.borrow_mut().winner = Some(self.player_id);
+        }
+
+        can_declare_forty_win
     }
 
     // Returns the winner of the trick and the first card in the trick, if this
