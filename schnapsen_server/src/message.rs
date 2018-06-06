@@ -5,10 +5,12 @@ use schnapsen_core::schnapsen;
 pub enum RequestData {
     Close,
     ExchangeTrump,
-    Twenty(Suit),
-    Forty,
+    PlayTwenty(Card),
+    TwentyDeclareWin(Suit),
+    PlayForty(Card),
+    FortyDeclareWin,
     Declare,
-    Trick(Card)
+    PlayCard(Card)
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -30,7 +32,7 @@ mod tests {
     #[test]
     fn test_json() {
         let id: u32 = 1;
-        let request = Request {id, data: RequestData::Twenty(Suit::Leaves)};
+        let request = Request {id, data: RequestData::TwentyDeclareWin(Suit::Leaves)};
         
         let serialized = ::serde_json::to_string_pretty(&request).unwrap();
         println!("serialized = {}", serialized);
