@@ -5,7 +5,7 @@ use cards::{Card, Suit, Rank};
 use schnapsen::ErrorKind;
 use schnapsen::{first_beats_second, value};
 use schnapsen::game_data::PublicGameData;
-use schnapsen::player::{PlayerId, Player};
+use schnapsen::player::{IPlayer, Player, PlayerId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PlayerGame<P, D>
@@ -57,7 +57,7 @@ impl<P, D> PlayerGame<P, D>
         } else {
             let player = self.player.borrow();
             let trump_unter = Card::new(borrowed_data.trump, Rank::Unter);
-            if player.hand.contains(&trump_unter) {
+            if player.get_hand().contains(&trump_unter) {
                 Ok(())
             } else {
                 Err(ErrorKind::NoSuchCardInHand(trump_unter))
@@ -110,11 +110,11 @@ impl<P, D> PlayerGame<P, D>
         let suit = card.suit();
         let other_card_in_twenty = Card::new(suit, other_rank_in_twenty);
         
-        if !player.hand.contains(&card) {
+        if !player.get_hand().contains(&card) {
             Err(ErrorKind::NoSuchCardInHand(card))
-        } else if !player.hand.contains(&other_card_in_twenty) {
+        } else if !player.get_hand().contains(&other_card_in_twenty) {
             Err(ErrorKind::NoSuchCardInHand(other_card_in_twenty))
-        } else if player.twenties.contains(&suit) {
+        } else if player.get_twenties().contains(&suit) {
             Err(ErrorKind::AlreadyCalledThisTwenty(suit))
         } else if suit == borrowed_data.trump {
             Err(ErrorKind::TwentyWithTrumpSuit)
@@ -154,11 +154,11 @@ impl<P, D> PlayerGame<P, D>
         let ober = Card::new(borrowed_data.trump, Rank::Ober);
         let king = Card::new(borrowed_data.trump, Rank::King);
         
-        if !player.hand.contains(&ober) {
+        if !player.get_hand().contains(&ober) {
             Err(ErrorKind::NoSuchCardInHand(ober))
-        } else if !player.hand.contains(&king) {
+        } else if !player.get_hand().contains(&king) {
             Err(ErrorKind::NoSuchCardInHand(king))
-        } else if player.forty.is_some() {
+        } else if player.get_forty().is_some() {
             Err(ErrorKind::AlreadyCalledForty)
         } else {
             Ok(())
@@ -189,7 +189,7 @@ impl<P, D> PlayerGame<P, D>
         
         let player = self.player.borrow();
         
-        if !player.hand.contains(&card) {
+        if !player.get_hand().contains(&card) {
             return Err(ErrorKind::NoSuchCardInHand(card));
         }
 
@@ -216,7 +216,7 @@ impl<P, D> PlayerGame<P, D>
         let player = self.player.borrow();
         
         let legal_second_card = legal_second_card_in_endgame(
-            first_card, &player.hand,
+            first_card, player.get_hand(),
             card, borrowed_data.trump);
         
         legal_second_card
@@ -263,11 +263,9 @@ impl<P, D> PlayerGame<P, D>
             
             {
                 let player = self.player.borrow_mut();
-                
-                let index = player.hand.iter()
-                    .position(|&card| card == Card::new(trump, Rank::Unter))
-                    .unwrap();
-                player.hand[index] = trump_card;
+
+                player.remove_from_hand(Card::new(trump, Rank::Unter));
+                player.add_to_hand(trump_card);
             }
         }
 
@@ -288,7 +286,7 @@ impl<P, D> PlayerGame<P, D>
 
         {
             let player = self.player.borrow_mut();
-            player.twenties.push(card.suit());
+            player.add_twenty(card.suit());
         }
 
         self.play_card(card).map(|_| ())
@@ -310,7 +308,7 @@ impl<P, D> PlayerGame<P, D>
             let trump = self.public_data.borrow().trump;
             let player = self.player.borrow_mut();
 
-            player.forty = Some(trump);
+            player.add_forty(trump);
         }
 
         self.play_card(card).map(|_| ())
@@ -331,7 +329,7 @@ impl<P, D> PlayerGame<P, D>
                      -> Result<Option<(PlayerId, Card)>, ErrorKind> {
         self.can_play_card(card)?;
 
-        self.remove_card_from_hand(card);
+        self.player.borrow_mut().remove_from_hand(card);
 
         let borrowed_data = self.public_data.borrow_mut();
         match borrowed_data.first_card_in_trick {
@@ -356,7 +354,7 @@ impl<P, D> PlayerGame<P, D>
 
                 if self.player_id == winning_player_id {
                     let player = self.player.borrow_mut();
-                    player.wins.extend_from_slice(&[card_on_lead, card]);
+                    player.add_to_wins(card_on_lead, card);
                 }
 
                 borrowed_data.player_on_lead = winning_player_id;
@@ -365,7 +363,7 @@ impl<P, D> PlayerGame<P, D>
                 let will_deal = !borrowed_data.is_closed()
                     && self.stock_size > 0;
                 
-                let hand_empty = self.player.borrow().hand.is_empty();
+                let hand_empty = self.player.borrow().get_hand().is_empty();
                 if !will_deal && hand_empty {
                     borrowed_data.winner = Some(winning_player_id);
                 }
@@ -377,14 +375,6 @@ impl<P, D> PlayerGame<P, D>
                 Ok(Some((winning_player_id, card_on_lead)))
             }
         }
-    }
-
-    fn remove_card_from_hand(&mut self, card: Card) {
-        let player = self.player.borrow_mut();
-        
-        let index_option = player.hand.iter().position(
-            |&card_in_hand| card_in_hand == card);
-        index_option.map(|index| player.hand.remove(index));
     }
 }
 

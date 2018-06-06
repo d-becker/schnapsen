@@ -3,6 +3,7 @@ mod game_adapter;
 mod game_data;
 mod player;
 mod player_game;
+mod stock;
 
 use cards::{Card, Suit, Rank};
 
@@ -10,9 +11,11 @@ use std::vec::Vec;
 
 pub use self::game::Game;
 pub use self::game_adapter::GameAdapter;
-pub use self::player::Player;
+pub use self::player::{DummyPlayer, IPlayer, Player};
 pub use self::player_game::PlayerGame;
 pub use self::game_data::PublicGameData;
+pub use self::stock::{DummyStock, IStock, Stock};
+
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ErrorKind {

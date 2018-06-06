@@ -1,9 +1,10 @@
 use schnapsen::ErrorKind;
 use schnapsen::game::Game;
 use schnapsen::player::PlayerId;
+use schnapsen::stock::Stock;
 
 pub struct GameAdapter {
-    game: Game
+    game: Game<Stock>
 }
 
 impl Default for GameAdapter {
@@ -13,13 +14,13 @@ impl Default for GameAdapter {
 }
 
 impl GameAdapter {
-    pub fn new(game: Game) -> GameAdapter {
+    pub fn new(game: Game<Stock>) -> GameAdapter {
         GameAdapter {game}
     }
     
     pub fn get_game_as_player(&mut self, player: PlayerId)
-                              -> Result<&mut Game, ErrorKind> {
-        if self.game.player_on_turn() == player {
+                              -> Result<&mut Game<Stock>, ErrorKind> {
+        if self.game.player_id_on_turn() == player {
             Ok(&mut self.game)
         } else {
             Err(ErrorKind::NotPlayersTurn)
