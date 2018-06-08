@@ -81,6 +81,12 @@ pub struct DummyStock {
     closed: bool
 }
 
+impl DummyStock {
+    pub fn new(length: usize, trump_card: Option<Card>) -> DummyStock {
+        DummyStock {length, trump_card, closed: false}
+    }
+}
+
 impl IStock for DummyStock {
     fn is_empty(&self) -> bool {
         self.length == 0

@@ -115,8 +115,7 @@ fn sum_card_slice(slice: &[Card]) -> u32 {
 }
 
 #[derive(Debug)]
-pub struct DummyPlayer {
-}
+pub struct DummyPlayer;
 
 impl IPlayer for DummyPlayer {
     fn get_name(&self) -> &str {

@@ -1,7 +1,27 @@
 use super::*;
 
+fn get_client_hand() -> Vec<Card> {
+    vec![Card::new(Suit::Leaves, Rank::Ober),
+         Card::new(Suit::Leaves, Rank::Unter),
+         Card::new(Suit::Bells, Rank::Ace),
+         Card::new(Suit::Bells, Rank::Unter),
+         Card::new(Suit::Hearts, Rank::Ten)]
+}
+
+fn get_client_game() -> Game<DummyStock> {
+    let trump = Suit::Hearts;
+    let trump_card = Card::new(trump, Rank::Ace);
+    let trump_card_rank = Some(trump_card.rank());
+    
+    let stock_len = 10;
+    let player_id = PlayerId::Player1;
+    let hand = get_client_hand();    
+    create_client_game(trump, trump_card_rank,
+                       stock_len, player_id, hand)
+}
+
 #[test]
-fn test_trump_card_closed() {
+fn test_server_trump_card_closed() {
     let cards = {
         let mut deck = generate_deck();
         deck.truncate(10);
@@ -15,12 +35,20 @@ fn test_trump_card_closed() {
     check_no_trump_card(&mut game);
 }
 
+#[test]
+fn test_client_trump_card_closed() {
+    let mut game = get_client_game();
+    game.stock.close();
+
+    check_no_trump_card(&mut game);
+}
+
 fn check_no_trump_card<STOCK: IStock>(game: &mut Game<STOCK>) {
     assert_eq!(None, game.trump_card());
 }
 
 #[test]
-fn test_trump_card_no_card_left() {
+fn test_server_trump_card_no_card_left() {
     let cards = vec![];
     let stock_data = StockData {cards, ..Default::default()};
     let stock = Stock::new(stock_data);
@@ -31,8 +59,26 @@ fn test_trump_card_no_card_left() {
 }
 
 #[test]
-fn test_close_ok() {
-    let mut game = Game::default();
+fn test_client_trump_card_no_card_left() {
+    let mut game = get_client_game();
+
+    while game.stock.len() > 0 {
+        game.stock.deal();
+    }
+
+    check_no_trump_card(&mut game);
+}
+
+#[test]
+fn test_server_close_ok() {
+    let mut game = Game::<Stock>::default();
+    
+    check_close_ok(&mut game);
+}
+
+#[test]
+fn test_client_close_ok() {   
+    let mut game = get_client_game();
     
     check_close_ok(&mut game);
 }
@@ -48,8 +94,15 @@ fn check_close_ok<STOCK: IStock>(game: &mut Game<STOCK>) {
 }
 
 #[test]
-fn test_close_not_on_lead() {
+fn test_server_close_not_on_lead() {
     let mut game = Game::default();
+
+    check_close_not_on_lead(&mut game);
+}
+
+#[test]
+fn test_client_close_not_on_lead() {
+    let mut game = get_client_game();
 
     check_close_not_on_lead(&mut game);
 }
@@ -68,8 +121,15 @@ fn check_close_not_on_lead<STOCK: IStock>(game: &mut Game<STOCK>) {
 }
 
 #[test]
-fn test_close_fails_when_already_closed() {
+fn test_server_close_fails_when_already_closed() {
     let mut game = Game::default();
+
+    check_close_fails_when_already_closed(&mut game);
+}
+
+#[test]
+fn test_client_close_fails_when_already_closed() {
+    let mut game = get_client_game();
 
     check_close_fails_when_already_closed(&mut game);
 }
@@ -91,7 +151,7 @@ fn check_close_fails_when_already_closed<STOCK: IStock>(
 }
 
 #[test]
-fn test_close_fails_when_not_enough_cards_left() {
+fn test_server_close_fails_when_not_enough_cards_left() {
     let cards = vec![Card::new(Suit::Leaves, Rank::Ace),
                      Card::new(Suit::Leaves, Rank::Ten)];
 
@@ -102,6 +162,17 @@ fn test_close_fails_when_not_enough_cards_left() {
         trump: Suit::Leaves,
         ..Default::default()
     };
+
+    check_close_fails_when_not_enough_cards_left(&mut game);
+}
+
+#[test]
+fn test_client_close_fails_when_not_enough_cards_left() {
+    let mut game = get_client_game();
+
+    while game.stock.len() > 2 {
+        game.stock.deal();
+    }
 
     check_close_fails_when_not_enough_cards_left(&mut game);
 }
