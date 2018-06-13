@@ -8,3 +8,4 @@ extern crate serde_json;
 
 pub mod schnapsen;
 pub mod cards;
+pub mod message;

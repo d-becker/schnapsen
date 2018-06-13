@@ -1,4 +1,5 @@
-mod server_game;
+pub mod client_game;
+pub mod server_game;
 
 use cards::{Card, Suit, Rank};
 
@@ -20,6 +21,10 @@ pub struct Game<STOCK: IStock> {
 }
 
 impl<STOCK> Game<STOCK> where STOCK: IStock {
+    pub fn get_stock(&self) -> &STOCK {
+        &self.stock
+    }
+    
     pub fn get_player1(&self) -> &Box<IPlayer> {
         &self.player1
     }
@@ -57,6 +62,10 @@ impl<STOCK> Game<STOCK> where STOCK: IStock {
     
     pub fn trump_card(&self) -> Option<Card> {
         self.stock.trump_card()
+    }
+
+    pub fn get_first_card_in_trick(&self) -> Option<Card> {
+        self.first_card_in_trick
     }
 
     pub fn is_closed(&self) -> bool {

@@ -6,4 +6,4 @@ extern crate serde_json;
 
 extern crate schnapsen_core;
 
-pub mod message;
+pub mod message_handler;

@@ -8,8 +8,10 @@ use cards::{Card, Suit, Rank};
 use std::vec::Vec;
 
 pub use self::game::Game;
+pub use self::game::client_game as client_game;
+pub use self::game::server_game as server_game;
 pub use self::game_adapter::GameAdapter;
-pub use self::player::{DummyPlayer, IPlayer, Player};
+pub use self::player::{DummyPlayer, IPlayer, Player, PlayerId};
 pub use self::stock::{DummyStock, IStock, Stock};
 
 
