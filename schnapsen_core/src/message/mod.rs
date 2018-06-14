@@ -25,7 +25,7 @@ pub struct Response {
     pub result: Result<(), schnapsen::ErrorKind>
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct FullPlayerGameState {
     pub winner: Option<schnapsen::PlayerId>,
     pub trump: Suit,
@@ -90,18 +90,4 @@ pub fn game_state_to_client_game(player_id: schnapsen::PlayerId,
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_json() {
-        let id: u32 = 1;
-        let request = Request {id, data: RequestData::TwentyDeclareWin(Suit::Leaves)};
-        
-        let serialized = ::serde_json::to_string_pretty(&request).unwrap();
-        println!("serialized = {}", serialized);
-
-        let deserialized: Request = ::serde_json::from_str(&serialized).unwrap();
-        println!("deserialized = {:?}", deserialized);
-    }
-}
+mod tests;
