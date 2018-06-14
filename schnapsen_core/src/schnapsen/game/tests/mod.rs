@@ -30,10 +30,7 @@ fn create_client_game(trump: Suit,
                       stock_len: usize,
                       player_id: PlayerId,
                       hand: Vec<Card>) -> Game<DummyStock> {
-
-    let trump_card = trump_card_rank.map(|rank| Card::new(trump, rank));
-    
-    let stock = DummyStock::new(stock_len, trump_card, false);
+    let stock = DummyStock::new(stock_len, trump_card_rank, false);
 
     let real_player : Box<IPlayer> = Box::new(Player::new(
         PlayerData {hand, ..Default::default()}));

@@ -61,7 +61,7 @@ impl<STOCK> Game<STOCK> where STOCK: IStock {
     }
     
     pub fn trump_card(&self) -> Option<Card> {
-        self.stock.trump_card()
+        self.stock.trump_card_rank().map(|rank| Card::new(self.trump(), rank))
     }
 
     pub fn get_first_card_in_trick(&self) -> Option<Card> {
@@ -125,9 +125,11 @@ impl<STOCK> Game<STOCK> where STOCK: IStock {
     pub fn exchange_trump(&mut self) -> Result<(), ErrorKind> {
         self.can_exchange_trump()?;
 
-        let trump_unter = Card::new(self.trump(), Rank::Unter);
-        let old_trump_card = self.stock.exchange_trump_card(trump_unter).unwrap();
+        let old_trump_card_rank
+            = self.stock.exchange_trump_card(Rank::Unter).unwrap();
+        let old_trump_card = Card::new(self.trump(), old_trump_card_rank);
         
+        let trump_unter = Card::new(self.trump(), Rank::Unter);
         let player = self.player_on_turn_mut();
         player.remove_from_hand(trump_unter);
         player.add_to_hand(old_trump_card);

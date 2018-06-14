@@ -1,4 +1,4 @@
-use cards::Card;
+use cards::{Card, Rank};
 
 use std::vec::Vec;
 
@@ -7,8 +7,8 @@ pub trait IStock {
     fn is_empty(&self) -> bool;
     fn len(&self) -> usize;
 
-    fn trump_card(&self) -> Option<Card>; // TODO: Only the rank should be stored.
-    fn exchange_trump_card(&mut self, card: Card) -> Option<Card>;
+    fn trump_card_rank(&self) -> Option<Rank>;
+    fn exchange_trump_card(&mut self, rank: Rank) -> Option<Rank>;
     
     fn is_closed(&self) -> bool;
     fn close(&mut self);
@@ -42,20 +42,21 @@ impl IStock for Stock {
         self.data.cards.len()
     }
 
-    fn trump_card(&self) -> Option<Card> {
+    fn trump_card_rank(&self) -> Option<Rank> {
         if self.is_closed() {
             None
         } else {
-            self.data.cards.first().map(|&card| card)
+            self.data.cards.first().map(|&card| card.rank())
         }
     }
 
-    fn exchange_trump_card(&mut self, card: Card) -> Option<Card> {
-        let old_trump_card_option = self.trump_card();
+    fn exchange_trump_card(&mut self, rank: Rank) -> Option<Rank> {
+        let old_trump_card_rank_option = self.trump_card_rank();
 
-        if let Some(_) = old_trump_card_option {
-            self.data.cards[0] = card;
-            old_trump_card_option
+        if let Some(_) = old_trump_card_rank_option {
+            let trump = self.data.cards[0].suit();
+            self.data.cards[0] = Card::new(trump, rank);
+            old_trump_card_rank_option
         } else {
             None
         }
@@ -77,14 +78,14 @@ impl IStock for Stock {
 #[derive(Default, Debug)]
 pub struct DummyStock {
     length: usize,
-    trump_card: Option<Card>,
+    trump_card_rank: Option<Rank>,
     closed: bool
 }
 
 impl DummyStock {
-    pub fn new(length: usize, trump_card: Option<Card>, closed: bool)
+    pub fn new(length: usize, trump_card_rank: Option<Rank>, closed: bool)
                -> DummyStock {
-        DummyStock {length, trump_card, closed}
+        DummyStock {length, trump_card_rank, closed}
     }
 }
 
@@ -97,18 +98,18 @@ impl IStock for DummyStock {
         self.length
     }
 
-    fn trump_card(&self) -> Option<Card> {
+    fn trump_card_rank(&self) -> Option<Rank> {
         if self.is_closed() || self.is_empty() {
             None
         } else {
-            self.trump_card
+            self.trump_card_rank
         }
     }
 
-    fn exchange_trump_card(&mut self, card: Card) -> Option<Card> {
-        if let Some(trump_c) = self.trump_card() {
-            self.trump_card = Some(card);
-            Some(trump_c)
+    fn exchange_trump_card(&mut self, rank: Rank) -> Option<Rank> {
+        if let Some(trump_c_r) = self.trump_card_rank() {
+            self.trump_card_rank = Some(rank);
+            Some(trump_c_r)
         } else {
             None
         }

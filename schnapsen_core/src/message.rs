@@ -59,7 +59,7 @@ pub fn game_to_game_state<STOCK: schnapsen::IStock>(
         first_card_in_trick: game.get_first_card_in_trick(),
 
         stock_size: game.get_stock().len() as u32,
-        trump_card_rank: game.get_stock().trump_card().map(|card| card.rank()),
+        trump_card_rank: game.get_stock().trump_card_rank(),
         stock_closed: game.get_stock().is_closed(),
 
         on_lead: game.player_id_on_lead(),
@@ -73,10 +73,8 @@ pub fn game_to_game_state<STOCK: schnapsen::IStock>(
 pub fn game_state_to_client_game(player_id: schnapsen::PlayerId,
                                  game_state: FullPlayerGameState)
                                  -> schnapsen::Game<schnapsen::DummyStock> {
-    let trump_card = game_state.trump_card_rank.map(
-        |rank| Card::new(game_state.trump, rank));
     let stock = schnapsen::DummyStock::new(game_state.stock_size as usize,
-                                           trump_card,
+                                           game_state.trump_card_rank,
                                            game_state.stock_closed);
     
     schnapsen::client_game::new_client_game(player_id,
