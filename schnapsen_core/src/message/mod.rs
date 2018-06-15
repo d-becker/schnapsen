@@ -48,6 +48,12 @@ pub struct FullStateUpdate {
     pub state: FullPlayerGameState
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ServerMessage {
+    pub response: Option<Response>,
+    pub state_update: Option<FullStateUpdate>
+}
+
 pub fn game_to_game_state<STOCK: schnapsen::IStock>(
     player_id: schnapsen::PlayerId,
     game: &schnapsen::Game<STOCK>)

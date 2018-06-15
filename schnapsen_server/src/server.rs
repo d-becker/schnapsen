@@ -1,19 +1,45 @@
 use schnapsen_core::schnapsen::{ErrorKind, Game, GameAdapter, PlayerId};
 
 use schnapsen_core::message;
-use schnapsen_core::message::{FullPlayerGameState, FullStateUpdate,
-                              Request, RequestData, Response};
+use schnapsen_core::message::{ServerMessage, FullPlayerGameState,
+                              FullStateUpdate, Request, RequestData, Response};
 
-pub struct MessageHandler {
-    state_number: u32,
-    game_adapter: GameAdapter
+pub trait Connection {
+    fn get_message(&self) -> (PlayerId, Request);
+    fn send_message(&self, player_id: PlayerId, message: ServerMessage);
 }
 
-impl MessageHandler {
-    pub fn handle_request(&mut self, player_id: PlayerId, request: Request)
-                          -> (Response,
-                              Option<FullStateUpdate>,
-                              Option<FullStateUpdate>)
+pub struct Server<C: Connection> {
+    state_number: u32,
+    game_adapter: GameAdapter,
+    connection: C
+}
+
+impl<C: Connection> Server<C> {
+    pub fn start(&mut self) {
+        loop {
+            let (player_id, request) = self.connection.get_message();
+            let (response, state1, state2)
+                = self.handle_request(player_id, request);
+
+            let response_message
+                = ServerMessage {response: Some(response),
+                                 state_update: state1};
+            self.connection.send_message(player_id, response_message);
+
+            if state2.is_some() {
+                let message_to_other_player
+                    = ServerMessage {response: None, state_update: state2};
+                self.connection.send_message(player_id.other(),
+                                             message_to_other_player);
+            }
+        }
+    }
+    
+    fn handle_request(&mut self, player_id: PlayerId, request: Request)
+                      -> (Response,
+                          Option<FullStateUpdate>,
+                          Option<FullStateUpdate>)
     {
         let response_res = self.response_result(player_id, &request);
         let response = Response {request_id: request.id, result: response_res};

@@ -26,6 +26,10 @@ impl GameAdapter {
             Err(ErrorKind::NotPlayersTurn)
         }
     }
+
+    pub fn get_game_view(&self) -> &Game<Stock> {
+        &self.game
+    }
 }
 
 #[cfg(test)]

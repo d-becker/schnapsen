@@ -356,7 +356,7 @@ impl<STOCK> Game<STOCK> where STOCK: IStock {
         // Actually the players should always have
         // the same number of cards in their hands.
         if self.player1.get_hand().is_empty()
-            || self.player2.get_hand().is_empty() {
+            && self.player2.get_hand().is_empty() {
                 self.winner = Some(winning_player_id);
             }
 

@@ -2,7 +2,6 @@ use cards::{Card, Rank};
 
 use std::vec::Vec;
 
-
 pub trait IStock {
     fn is_empty(&self) -> bool;
     fn len(&self) -> usize;
@@ -71,7 +70,11 @@ impl IStock for Stock {
     }
 
     fn deal(&mut self) -> Option<Card> {
-        self.data.cards.pop()
+        if !self.is_closed() {
+            self.data.cards.pop()
+        } else {
+            None
+        }
     }
 }
 
@@ -131,3 +134,6 @@ impl IStock for DummyStock {
         None
     }
 }
+
+#[cfg(test)]
+mod tests;
